@@ -11,6 +11,7 @@
 
 #define PERMS 0644
 #define MAX_CHILDREN 20
+#define SCHEDULED_TIME 10
 
 typedef struct msgBuffer {
 	long mtype;
@@ -46,21 +47,34 @@ int msqid;
 int processTableSize;
 
 // FUNCTION PROTOTYPES
+//Help function
 void help();
+//Process table functions
 void initializeProcessTable();
-void incrementClock(int *shm_ptr);
-void terminateProgram(int signum);
-void sighandler(int signum);
 void initializePCB(pid_t pid, int simulatedClock[]);
 void processEnded(int pidNumber);
 void outputTable();
+//OSS functions
+void incrementClock(int *shm_ptr);
+void launchChild(int simulatedClock[], int maxSimulChildren);
+//TODO: int calculatePriority();
+int scheduleProcess(pid_t process, msgBuffer buf);
+void receiveMessage(pid_t process, msgBuffer buf);
+//Program end functions
+void terminateProgram(int signum);
+void sighandler(int signum);
+//Log file functions
 void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
-int randNumGenerator(int max, int pid);
+//Queue fucntions
 void enqueue(int element, struct queue *queue);
 int dequeue(struct queue *queue);
-void launchChild(int simulatedClock[], int maxSimulChildren);
+//Checking functions
 int checkChildren(int maxSimulChildren);
+int stillChildrenToLaunch();
+int childrenInSystem();
+int findBufferIndex(pid_t pid);
+
 
 int main(int argc, char** argv) {
 	//signals to terminate program properly if user hits ctrl+c or 60 seconds pass
@@ -124,17 +138,18 @@ int main(int argc, char** argv) {
 	processTableSize = proc;
 
 	//create a mesasge buffer for each child to be created
-	msgBuffer buf[processTableSize];
+	//TODO: i don't think i need this: msgBuffer buf[processTableSize];
+	msgBuffer buf;
 
 	//allocates memory for the processTable stored in global memory
 	processTable = calloc(processTableSize, sizeof(struct PCB));
 	//sets all pids in the process table to 0
 	initializeProcessTable();
 
-	//TODO: stillChildrenToLaunch should check if we have initialized the final PCB yet. 
-	//TODO: childrenInSystem should check if any PCBs remain occupied
-	while(checkChildren(simul) || childrenInSystem()) {
-		//TODO: calls another function to check if runningChildren < simul, and if so, launches a new child.
+	//stillChildrenToLaunch checks if we have initialized the final PCB yet. 
+	//childrenInSystem checks if any PCBs remain occupied
+	while(stillChildrenToLaunch() || childrenInSystem()) {
+		//calls another function to check if runningChildren < simul, and if so, launches a new child.
 		launchChild(simulatedClock, simul);
 
 		//TODO: checks to see if a blocked process should be changed to ready
@@ -144,11 +159,18 @@ int main(int argc, char** argv) {
 		//pid_t priority;
 		//priority = calculatePriorities();
 
-		//TODO: schedules the process with the highest priority
-		//scheduleProcess(priority);
+		pid_t priority = processTable[0].pid;
+		printf("first pid: %d\n", priority);
+		//schedules the process with the highest priority
+		if(!scheduleProcess(priority, buf)) {
+			perror("Failed to schedule process");
+			exit(1);
+		}
+		else
+			printf("message sent.\n");
 
-		//TODO: Waits for a message back and updates appropriate structures
-		//receiveMessage(priority);
+		//TODO: Waits for a message back AND UPDATES APPROPRIATE STRUCTURES
+		receiveMessage(priority, buf);
 
 		//TODO: Outputs the process table to a log file and the screen every half second, if the log file isn't full
 		//if(checkTime() && checkOutput()) 
@@ -207,7 +229,7 @@ void initializePCB(pid_t pid, int simulatedClock[]) {
 
 //Checks to see if another child can be launched. If so, it launches a new child.
 void launchChild(int simulatedClock[], int maxSimulChildren) {
-	if(checkChildren(maxSimulChildren)) {
+	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
 		pid_t newChild;
 		newChild = fork();
 		if(newChild < 0) {
@@ -224,7 +246,7 @@ void launchChild(int simulatedClock[], int maxSimulChildren) {
 	}
 }
 
-//Returns 1 if more children can be launched, returns 0 otherwise
+//Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
 int checkChildren(int maxSimulChildren) {
 	int runningChildren;
 	runningChildren = 0;
@@ -237,6 +259,74 @@ int checkChildren(int maxSimulChildren) {
 		return 1;
 
 	return 0;
+}
+
+//If the maximum number of children has not been reached, return true. Otherwise return false
+int stillChildrenToLaunch() {
+	if(processTable[processTableSize].pid == 0)
+		return 1;
+	return 0;
+}
+
+//Returns 1 if any children are running. Returns 0 otherwise
+int childrenInSystem() {
+	for(int count = 0; count < processTableSize; count++) {
+		if(processTable[count].occupied)
+			return 1;
+	}
+	return 0;
+}
+
+//returns the buffer index corresponding to a given pid
+int findBufferIndex(pid_t pid) {
+	for(int count = 0; count < processTableSize; count++) {
+		if(processTable[count].pid == pid)
+			return count;
+	}
+	return 0;
+}
+
+//"Schedules" a process by sending it a message to indicate that it should run
+//Returns 1 if a process was successful scheduled
+int scheduleProcess(pid_t process, msgBuffer buf) {
+	/*TODO: int index = findBufferIndex(process);
+	if(!index) {
+		printf("Attempted to schedule a process that has not started\n");
+		return 0;
+	}
+	buf[index].mtype = process;
+	buf[index].intData = process;
+	buf[index].msgData = 10;*/
+
+	buf.mtype = process;
+	buf.intData = process;
+	buf.msgData = SCHEDULED_TIME;
+
+	if(msgsnd(msqid, &buf, sizeof(msgBuffer) - sizeof(long), 0) == -1) {
+		perror("msgsnd to child failed\n");
+		exit(1);
+	}
+	
+	return 1;
+}
+
+//Receives a message back from child that indicates how much time the child used and if it is blocked
+//Updates process table accordingly
+void receiveMessage(pid_t process, msgBuffer buf) {
+	if(msgrcv(msqid, &buf, sizeof(msgBuffer), process, 0) == -1) {
+			perror("msgrcv from child failed\n");
+			exit(1);
+	}
+
+	printf("message received from child\n");
+	/*if(buf.msgData == SCHEDULED_TIME) {
+		processTable[process].occupied = 0;
+	}
+	else if(buf.msgData > 0) {
+		processTable[process].blocked = 1;
+	}
+	processTable[process].serviceTimeNano = processTable[process].serviceTimeNano + buf.msgData;*/
+
 }
 
 void incrementClock(int simulatedClock[]) {
@@ -309,11 +399,6 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
 		fprintf(file, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
 	}
-}
-
-int randNumGenerator(int max, int pid) {
-	srand(pid);
-	return ((rand() % max) + 1);
 }
 
 //I yanked some generic queue code from https://www.javatpoint.com/queue-in-c

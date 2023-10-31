@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
 			* Use % of time sent by parent, go to blocked queue
 				* Send back time used (positive remainder)
 			* Use % of time sent by parent, terminate
-				* Send back time NOT used (negative value, equal to timeUsed - totalTime)
+				* Send back time used but negative(negative value)
 	*/
 
 	msgbuffer buf;
