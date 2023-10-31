@@ -14,19 +14,20 @@ typedef struct msgbuffer {
 	int intData;
 } msgbuffer;
 
-void output(int pid, int ppid, int sysClockS, int sysClockNano, int termTimeS, int termTimeNano) {
-	printf("WORKER PID:%d PPID:%d SysclockS:%d SysClockNano:%d TermTimeS:%d TermTimeNano:%d\n", pid, ppid, sysClockS, sysClockNano, termTimeS, termTimeNano);	
-}
-
-int checkTime(int sysClockS, int sysClockNano, int termTimeS, int termTimeNano) {
-	if(sysClockS < termTimeS)
-		return 1;
-	if(sysClockNano < termTimeNano)
-		return 1;
-	return 0;
-}
-
 int main(int argc, char** argv) {
+
+	/*
+	TODO: 
+		* Create random number generator (RNG)
+		* Use RNG to decide which action worker takes
+			* Use all of time sent by parent
+				* Send back timeUsed (will equal the time sent to child by parent)
+			* Use % of time sent by parent, go to blocked queue
+				* Send back time used (positive remainder)
+			* Use % of time sent by parent, terminate
+				* Send back time NOT used (negative value, equal to timeUsed - totalTime)
+	*/
+
 	msgbuffer buf;
 	buf.mtype = 1;
 	buf.msgData = 0;
@@ -46,92 +47,28 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 	
-	int seconds;
-	seconds = atoi(argv[0]);
+	//the TTL sent by oss
 	int nanoseconds;
 	nanoseconds = atoi(argv[1]);	
        	
-	pid_t ppid = getppid();
-	pid_t pid = getpid();
-
-	//get access to shared memory
-	const int sh_key = ftok("./oss.c", 0);
-	int shm_id = shmget(sh_key, sizeof(int) * 2, IPC_CREAT | 0666);
-	int *shm_ptr = shmat(shm_id, 0, 0);
+	pid_t parentPid = getppid();
+	pid_t myPid = getpid();
 
 	int msgReceived; //set to 1 when message comes in from parent
 	msgReceived = 0;
 	while(!msgReceived) {
-		if(msgrcv(msqid, &buf, sizeof(msgbuffer), getpid(), 0) >= 0)
+		if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0)
 			msgReceived = 1;
 	}
 
-	//get term time after first message received
-	int termTimeS;
-        termTimeS = shm_ptr[0] + seconds;
-        int termTimeNano;
-        termTimeNano = shm_ptr[1] + nanoseconds;
-
-	//print intial output
-	printf("WORKER PID:%d PPID:%d Called with OSS: TermTimeS:%d TermTimeNano:%d\n", pid, ppid, termTimeS, termTimeNano);
-	printf("--Received message\n");
-	msgReceived = 0;	
-
-	buf.mtype = getppid();
-	buf.intData = getppid();
+	//Send message back to parent
+	buf.mtype = parentPid;
+	buf.intData = parentPid;
+	buf.msgData = 0;//TODO: fill in return value to parent
 	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);
 	}
 
-	int outputTimer;
-      	outputTimer = shm_ptr[0];
-	int outputCounter;
-	outputCounter = 1;	
-
-	int timeLeft;
-	timeLeft = 1;
-	
-	//the program waits to receive another message before checking the clock and sending another message back
-	while(timeLeft) { //timesUp will evaluate to false if the term time has not been reached, executing another loop
-		buf.mtype = 1;
-		buf.intData = 0;
-		if(msgrcv(msqid, &buf, sizeof(msgbuffer), getpid(), 0) == -1) {
-			printf("msgrcv failed in child\n");
-			exit(1);
-		}
-		else
-		{
-			timeLeft = checkTime(shm_ptr[0], shm_ptr[1], termTimeS, termTimeNano);
-			if(timeLeft) {
-				buf.mtype = getppid();
-				buf.intData = getppid();
-				buf.msgData = 1;
-				if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
-					printf("msgsnd to parent failed\n");
-					exit(1);
-				}
-			}
-			if(shm_ptr[0] > outputTimer) {
-				outputTimer = shm_ptr[0];
-				output(pid, ppid, shm_ptr[0], shm_ptr[1], termTimeS, termTimeNano);
-				printf("--%d seconds have passed since starting\n", outputCounter++);
-			}
-		}
-	}
-	
-	//if term time has elapsed, the loop has terminated. Send back msgData = 0 and final output
-	output(pid, ppid, shm_ptr[0], shm_ptr[1], termTimeS, termTimeNano);
-	printf("--Terminating\n");
-	buf.msgData = 0;
-	buf.mtype = getppid();
-	buf.intData = getppid();
-	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
-		perror("msgsnd to parent failed\n");
-		exit(1);
-	}	
-
-	//detach from shared memory
-	shmdt(shm_ptr);
 	return EXIT_SUCCESS;
 }
