@@ -40,109 +40,18 @@ int msqid;
 //Needed for killing all child processes
 int arraySize;
 
-// FUNCTIONS
+// FUNCTION PROTOTYPES
 
-void help() {
-        printf("This program is designed to have a parent process fork off into child processes.\n");
-	printf("The child processes use a simulated clock in shared memory to keep track of runtime.\n");
-	printf("The runtime is a random number of seconds and nanoseconds between 1 and the time limit prescribed by the user.\n");
-	printf("The child processes are only allowed to check the clock when they receive a message from the parent through a message queue.\n\n");
-        printf("The executable takes four flags: [-n proc], [-s simul], [-t timelimit], and [-f logfile].\n");
-        printf("The value of proc determines the total number of child processes to be produced.\n");
-	printf("The value of simul determines the number of children that can run simultaneously.\n");
-	printf("The value of timelimit determines the maximum number of seconds that a child process can take.\n");
-	printf("The file name provided will be used as a logfile to which this program outputs.\n");
-	printf("\nMADE BY JACOB (JT) FOX\nOctober 12th, 2023\n");
-	exit(1);
-}
-
-void incrementClock(int *shm_ptr) {
-	shm_ptr[1] += 50000;
-	if(shm_ptr[1] >= 1000000000) {
-		shm_ptr[1] = 0;
-		shm_ptr[0] += 1;
-	}
-}
-
-void terminateProgram(int signum) {
-	//detaches from and deletes shared memory
-	shmdt(shm_ptr);
-	shmctl(shm_id, IPC_RMID, NULL);
-
-	//Kills any remaining active child processes
-	int count;
-	for(count = 0; count < arraySize; count++) {
-		if(processTable[count].occupied)
-			kill(processTable[count].pid, signum);
-	}
-
-	//Frees memory allocated for processTable
-	free(processTable);
-	processTable = NULL;
-
-	// get rid of message queue
-	if (msgctl(msqid, IPC_RMID, NULL) == -1) {
-		perror("msgctl to get rid of queue in parent failed");
-		exit(1);
-	}
-
-	printf("Program is terminating. Goodbye!\n");
-	exit(1);
-}
-
-void sighandler(int signum) {
-	printf("\nCaught signal %d\n", signum);
-	terminateProgram(signum);
-	printf("If you're seeing this, then bad things have happened.\n");
-}
-
-
-void startPCB(int tableEntry, int pidNumber, int *time) {
-	processTable[tableEntry].occupied = 1;
-	processTable[tableEntry].pid = pidNumber;
-	processTable[tableEntry].startTimeSec = time[0];
-	processTable[tableEntry].startTimeNano = time[1];
-}
-
-void endPCB(int pidNumber) {
-	int i;
-	for(i = 0; i < arraySize; i++) {
-		if(processTable[i].pid == pidNumber) {
-			processTable[i].occupied = 0;
-			return;
-		}
-	}
-}
-
-void outputTable() {
-	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
-	int i;
-	for(i = 0; i < arraySize; i++) {
-		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSec, processTable[i].startTimeNano);
-	}
-}
-
-void sendingOutput(int chldNum, int chldPid, FILE *file) {
-	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
-}
-
-//this is a bad function because it is doing two things
-void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf) {
-	if(rcvbuf.msgData != 0) {
-		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
-	}
-	else {
-		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
-		fprintf(file, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
-		//indicate that a child is about to die, preventing 
-
-	}
-}
-
-int randNumGenerator(int max) {
-	srand(time(NULL));
-	return ((rand() % max) + 1);
-}
+void help();
+void incrementClock(int *shm_ptr);
+void terminateProgram(int signum);
+void sighandler(int signum);
+void startPCB(int tableEntry, int pidNumber, int *time);
+void endPCB(int pidNumber);
+void outputTable();
+void sendingOutput(int chldNum, int chldPid, FILE *file);
+void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf);
+int randNumGenerator(int max, int pid);
 
 int main(int argc, char** argv) {
 	//signals to terminate program properly if user hits ctrl+c or 60 seconds pass
@@ -220,138 +129,110 @@ int main(int argc, char** argv) {
 	//allocates memory for the processTable stored in global memory
 	processTable = calloc(arraySize, sizeof(struct PCB));
 
-	int totalChildren;
-	int runningChildren;
-	totalChildren = 0;
-	runningChildren = 0;	
-
-	//vars for fetching worker termTime values
-	const int maxNano = 1000000000;
-	int randNumS, randNumNano;
-
-	//char str for sending randNum values to the worker
-	char secStr[sizeof(int)];
-	char nanoStr[sizeof(int)];
-
-	//initialize child processes
-	while(runningChildren < simul) { 
-  		pid_t childPid = fork();                
-
-      		if(childPid == 0) {
-			randNumS = randNumGenerator(timelimit);
-			randNumNano = randNumGenerator(maxNano);
-			snprintf(secStr, sizeof(int), "%d", randNumS);
-			snprintf(nanoStr, sizeof(int), "%d", randNumNano);
-			execlp("./worker", secStr, nanoStr,  NULL);
-       			exit(1);
-       		}
-		else {
-			startPCB(runningChildren, childPid, shm_ptr);
-			runningChildren++;
-			totalChildren++;
-		}
-       	}
-      
-	//outputTimer ensures that output occurs every half second
-	int outputTimer;
-	outputTimer = 0;
-	int halfSecond = 500000000;
-
-	//iterator to keep track of the next child in rotation
-	int nextChild;
-	nextChild = 0;
-	int deadChildFlag;
-	deadChildFlag = 0;
-	do {
-		incrementClock(shm_ptr);
-
-		if(abs(shm_ptr[1] - outputTimer) >= halfSecond){
-			outputTimer = shm_ptr[1];
-			printf("\nOSS PID:%d SysClockS:%d SysClockNano:%d\n", getpid(), shm_ptr[0], shm_ptr[1]); 
-			outputTable();
-		}
-		
-		if(deadChildFlag) { 
-			printf("\n\n\nI died\n"); //This is never output to the terminal, meaning that waitpid never catches a terminated process
-			endPCB(deadChildFlag); //sets processTable.occupied to 0
-			runningChildren--;
-			if(totalChildren < arraySize) {
-				pid_t childPid = fork(); //Launches child
-				if(childPid == 0) {
-					randNumS = randNumGenerator(timelimit);
-					randNumNano = randNumGenerator(maxNano);
-					snprintf(secStr, sizeof(int), "%d", randNumS);
-					snprintf(nanoStr, sizeof(int), "%d", randNumNano);
-					execlp("./worker", secStr, nanoStr, NULL);
-					exit(1);
-				}
-				else {
-					startPCB(totalChildren, childPid, shm_ptr);
-					runningChildren++;
-					totalChildren++;
-				}
-			}
-			deadChildFlag = 0;
-		}
-
-		//gets the pid of the next child in the rotation
-		int msgPid;
-		msgPid = processTable[nextChild].pid;
-
-		buf.mtype = msgPid;
-		buf.intData = msgPid;
-
-		if(msgsnd(msqid, &buf, sizeof(msgBuffer) - sizeof(long), 0) == -1) {
-			perror("msgsnd to child failed\n");
-			exit(1);
-		}
-
-		sendingOutput(nextChild, msgPid, fptr);
-
-		msgBuffer rcvbuf;
-		rcvbuf.mtype = 1;
-		rcvbuf.intData = 0;
-		rcvbuf.msgData = 1;
-
-		//still waiting on this?
-		if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
-			perror("failed to receive message in parent\n");
-			exit(1);
-		}
-
-		receivingOutput(nextChild, msgPid, fptr, rcvbuf);
-
-		//if the child has signalled that they are going to terminate,
-		//wait for them to do so and then store the pid. otherwise, continue.
-		//I know this isn't ideal, but without doing this oss kept skipping through
-		//my waitpid() and started waiting for another message that would never come
-		if(rcvbuf.msgData == 0) {
-			deadChildFlag = wait(0); //holds the pid of the dead worker process
-			printf("deadChildFlag: %d", deadChildFlag);
-		}
-
-		//keeps nextChild within the bounds of the array
-		if(nextChild == arraySize - 1)
-			nextChild = 0;
-		else if(processTable[nextChild + 1].occupied == 0){
-			nextChild = 0;
-			int i;
-			for(i = 0; i < arraySize; i++) {
-				if(processTable[nextChild].occupied == 0)
-					nextChild++;
-				else
-					break;
-			}
-		}
-		else
-			nextChild++;
-
-	} while(runningChildren);	
-
-	printf("DID I BREAK THE LOOP?\n"); //No. No you did not.
 	pid_t wpid;
 	int status = 0;
 	while((wpid = wait(&status)) > 0);
 	terminateProgram(SIGTERM);
 	return EXIT_SUCCESS;
+}
+
+// FUNCTION DEFINITIONS
+
+void help() {
+    printf("This program is designed to have a parent process fork off into child processes.\n");
+	printf("The child processes use a simulated clock in shared memory to keep track of runtime.\n");
+	printf("The runtime is a random number of seconds and nanoseconds between 1 and the time limit prescribed by the user.\n");
+	printf("The child processes are only allowed to check the clock when they receive a message from the parent through a message queue.\n\n");
+    printf("The executable takes four flags: [-n proc], [-s simul], [-t timelimit], and [-f logfile].\n");
+    printf("The value of proc determines the total number of child processes to be produced.\n");
+	printf("The value of simul determines the number of children that can run simultaneously.\n");
+	printf("The value of timelimit determines the maximum number of seconds that a child process can take.\n");
+	printf("The file name provided will be used as a logfile to which this program outputs.\n");
+	printf("\nMADE BY JACOB (JT) FOX\nOctober 12th, 2023\n");
+	exit(1);
+}
+
+void incrementClock(int *shm_ptr) {
+	shm_ptr[1] += 50000;
+	if(shm_ptr[1] >= 1000000000) {
+		shm_ptr[1] = 0;
+		shm_ptr[0] += 1;
+	}
+}
+
+void terminateProgram(int signum) {
+	//detaches from and deletes shared memory
+	shmdt(shm_ptr);
+	shmctl(shm_id, IPC_RMID, NULL);
+
+	//Kills any remaining active child processes
+	int count;
+	for(count = 0; count < arraySize; count++) {
+		if(processTable[count].occupied)
+			kill(processTable[count].pid, signum);
+	}
+
+	//Frees memory allocated for processTable
+	free(processTable);
+	processTable = NULL;
+
+	// get rid of message queue
+	if (msgctl(msqid, IPC_RMID, NULL) == -1) {
+		perror("msgctl to get rid of queue in parent failed");
+		exit(1);
+	}
+
+	printf("Program is terminating. Goodbye!\n");
+	exit(1);
+}
+
+void sighandler(int signum) {
+	printf("\nCaught signal %d\n", signum);
+	terminateProgram(signum);
+	printf("If you're seeing this, then bad things have happened.\n");
+}
+
+
+void startPCB(int tableEntry, int pidNumber, int *time) {
+	processTable[tableEntry].occupied = 1;
+	processTable[tableEntry].pid = pidNumber;
+	processTable[tableEntry].startTimeSec = time[0];
+	processTable[tableEntry].startTimeNano = time[1];
+}
+
+void endPCB(int pidNumber) {
+	int i;
+	for(i = 0; i < arraySize; i++) {
+		if(processTable[i].pid == pidNumber) {
+			processTable[i].occupied = 0;
+			return;
+		}
+	}
+}
+
+void outputTable() {
+	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
+	int i;
+	for(i = 0; i < arraySize; i++) {
+		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSec, processTable[i].startTimeNano);
+	}
+}
+
+void sendingOutput(int chldNum, int chldPid, FILE *file) {
+	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
+}
+
+void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf) {
+	if(rcvbuf.msgData != 0) {
+		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
+	}
+	else {
+		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
+		fprintf(file, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
+	}
+}
+
+int randNumGenerator(int max, int pid) {
+	srand(pid);
+	return ((rand() % max) + 1);
 }
