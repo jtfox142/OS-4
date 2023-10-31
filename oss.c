@@ -10,6 +10,7 @@
 #include<sys/msg.h>
 
 #define PERMS 0644
+#define MAX_CHILDREN 20
 
 typedef struct msgBuffer {
 	long mtype;
@@ -17,7 +18,7 @@ typedef struct msgBuffer {
 	int intData;
 } msgBuffer;
 
-typedef struct PCB {
+struct PCB {
 	int occupied; //either true or false
 	pid_t pid; //process id of this child
 	int startTimeSeconds; //time when it was created
@@ -27,26 +28,27 @@ typedef struct PCB {
 	int eventWaitSeconds; //when does its events happen?
 	int eventWaitNano; //when does its events happen?
 	int blocked; //is this process waiting on an event?
-} PCB;
+};
+
+struct queue {
+	int front;
+	int rear;
+	int entries[MAX_CHILDREN];
+};
 
 // GLOBAL VARIABLES
-
 //For storing each child's PCB. Memory is allocated in main
-PCB *processTable;
-
+struct PCB *processTable;
 //Shared memory variables
 int sh_key;
 int shm_id;
 int *shm_ptr;
-
 //Message queue id
 int msqid;
-
 //Needed for killing all child processes
 int processTableSize;
 
 // FUNCTION PROTOTYPES
-
 void help();
 void incrementClock(int *shm_ptr);
 void terminateProgram(int signum);
@@ -57,6 +59,8 @@ void outputTable();
 void sendingOutput(int chldNum, int chldPid, FILE *file);
 void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf);
 int randNumGenerator(int max, int pid);
+void enqueue(int element, struct queue *queue);
+int dequeue(struct queue *queue);
 
 int main(int argc, char** argv) {
 	//signals to terminate program properly if user hits ctrl+c or 60 seconds pass
@@ -80,8 +84,8 @@ int main(int argc, char** argv) {
 	}
 	
 	//set clock to zero
-        shm_ptr[0] = 0;
-        shm_ptr[1] = 0;
+    shm_ptr[0] = 0;
+    shm_ptr[1] = 0;
 
 	//message queue setup
 	key_t key;
@@ -99,7 +103,11 @@ int main(int argc, char** argv) {
 		exit(1);
 	}
 
-	//user input vars
+	//Resources for the scheduler
+	struct queue *readyQueue;
+	struct queue *blockedQueue;
+
+	//user input variables
 	int option;
 	int proc;
 	int simul;
@@ -132,7 +140,7 @@ int main(int argc, char** argv) {
 	msgBuffer buf;
 
 	//allocates memory for the processTable stored in global memory
-	processTable = calloc(processTableSize, sizeof(PCB));
+	processTable = calloc(processTableSize, sizeof(struct PCB));
 
 	pid_t wpid;
 	int status = 0;
@@ -241,3 +249,27 @@ int randNumGenerator(int max, int pid) {
 	srand(pid);
 	return ((rand() % max) + 1);
 }
+
+//I yanked some generic queue code from https://www.javatpoint.com/queue-in-c
+//and then modified it to fit my needs
+void enqueue(int element, struct queue *queue) {  
+    if (queue->rear == processTableSize - 1) {  
+        printf("Queue is full");  
+        return;  
+    }  
+    if (queue->front == -1) {  
+        queue->front = 0;  
+    }  
+    queue->rear++;  
+    queue->entries[queue->rear] = element;  
+}  
+  
+int dequeue(struct queue *queue) {  
+    if (queue->front == -1 || queue->front > queue->rear) {  
+        printf("Queue is empty");  
+        return -1;  
+    }  
+    int element = queue->entries[queue->front];  
+    queue->front++;  
+    return element;  
+}  
