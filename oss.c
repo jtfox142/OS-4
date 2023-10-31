@@ -237,7 +237,9 @@ void launchChild(int simulatedClock[], int maxSimulChildren) {
 			exit(-1);
 		}
 		else if(newChild == 0) {
-			execlp("./worker", NULL);
+			char fakeArg[sizeof(int)];
+			snprintf(fakeArg, sizeof(int), "%d", 1);
+			execlp("./worker", fakeArg, NULL);
        		exit(1);
        		}
 		else {
