@@ -120,7 +120,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	
-	//if term time has elapsed, the loop has terminated. Send back intData = 1 and final output
+	//if term time has elapsed, the loop has terminated. Send back msgData = 0 and final output
 	output(pid, ppid, shm_ptr[0], shm_ptr[1], termTimeS, termTimeNano);
 	printf("--Terminating\n");
 	buf.msgData = 0;

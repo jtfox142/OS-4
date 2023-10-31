@@ -126,6 +126,7 @@ void sendingOutput(int chldNum, int chldPid, FILE *file) {
 	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
 }
 
+//this is a bad function because it is doing two things
 void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf) {
 	if(rcvbuf.msgData != 0) {
 		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
@@ -133,6 +134,8 @@ void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf) {
 	else {
 		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
 		fprintf(file, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
+		//indicate that a child is about to die, preventing 
+
 	}
 }
 
@@ -257,6 +260,8 @@ int main(int argc, char** argv) {
 	//iterator to keep track of the next child in rotation
 	int nextChild;
 	nextChild = 0;
+	int deadChildFlag;
+	deadChildFlag = 0;
 	do {
 		incrementClock(shm_ptr);
 
@@ -266,12 +271,9 @@ int main(int argc, char** argv) {
 			outputTable();
 		}
 		
-
-		int status;
-		int pid = waitpid(-1, &status, WNOHANG); //will return 0 if no processes have terminated
-		if(pid) {
+		if(deadChildFlag) { 
 			printf("\n\n\nI died\n"); //This is never output to the terminal, meaning that waitpid never catches a terminated process
-			endPCB(pid); //sets processTable.occupied to 0
+			endPCB(deadChildFlag); //sets processTable.occupied to 0
 			runningChildren--;
 			if(totalChildren < arraySize) {
 				pid_t childPid = fork(); //Launches child
@@ -289,6 +291,7 @@ int main(int argc, char** argv) {
 					totalChildren++;
 				}
 			}
+			deadChildFlag = 0;
 		}
 
 		//gets the pid of the next child in the rotation
@@ -310,20 +313,22 @@ int main(int argc, char** argv) {
 		rcvbuf.intData = 0;
 		rcvbuf.msgData = 1;
 
-		//ATTENTION PROFESSOR
-		//For whatever reason, my code seems to break here. 
-		//It's very possible that this is not the actual spot it is broken, but this is where
-		//it gets stuck at the very least. What appears to be happening is that waitpid doesn't catch
-		//that any children have terminated, and it gets stuck waiting here for a new message that will
-		//never come. I have messed with it for multiple hours now. I cannot get it to work.
-		//Very frustrating.
-		//Sorry for the spaghetti code
+		//still waiting on this?
 		if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
 			perror("failed to receive message in parent\n");
 			exit(1);
 		}
 
 		receivingOutput(nextChild, msgPid, fptr, rcvbuf);
+
+		//if the child has signalled that they are going to terminate,
+		//wait for them to do so and then store the pid. otherwise, continue.
+		//I know this isn't ideal, but without doing this oss kept skipping through
+		//my waitpid() and started waiting for another message that would never come
+		if(rcvbuf.msgData == 0) {
+			deadChildFlag = wait(0); //holds the pid of the dead worker process
+			printf("deadChildFlag: %d", deadChildFlag);
+		}
 
 		//keeps nextChild within the bounds of the array
 		if(nextChild == arraySize - 1)
@@ -350,5 +355,3 @@ int main(int argc, char** argv) {
 	terminateProgram(SIGTERM);
 	return EXIT_SUCCESS;
 }
-
-
