@@ -167,7 +167,7 @@ int main(int argc, char** argv) {
 			exit(1);
 		}
 		else
-			printf("message sent.\n");
+			printf("message sent from parent.\n");
 
 		//TODO: Waits for a message back AND UPDATES APPROPRIATE STRUCTURES
 		receiveMessage(priority, buf);
@@ -267,18 +267,23 @@ int checkChildren(int maxSimulChildren) {
 int stillChildrenToLaunch() {
 	printf("Checking for children to launch\n");
 	if(processTable[processTableSize - 1].pid == 0) {
-		printf("Returning 1\n");
+		printf("Children to launch is true\n");
 		return 1;
 	}
+	printf("Children to launch is false\n");
 	return 0;
 }
 
 //Returns 1 if any children are running. Returns 0 otherwise
 int childrenInSystem() {
+	printf("Checking for children in system\n");
 	for(int count = 0; count < processTableSize; count++) {
-		if(processTable[count].occupied)
+		if(processTable[count].occupied) {
+			printf("children in system is true\n");
 			return 1;
+		}
 	}
+	printf("Children in system is false\n");
 	return 0;
 }
 
@@ -318,6 +323,7 @@ int scheduleProcess(pid_t process, msgBuffer buf) {
 //Receives a message back from child that indicates how much time the child used and if it is blocked
 //Updates process table accordingly
 void receiveMessage(pid_t process, msgBuffer buf) {
+	printf("waiting on message from child\n");
 	if(msgrcv(msqid, &buf, sizeof(msgBuffer), process, 0) == -1) {
 			perror("msgrcv from child failed\n");
 			exit(1);
