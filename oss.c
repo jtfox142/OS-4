@@ -17,17 +17,22 @@ typedef struct msgBuffer {
 	int intData;
 } msgBuffer;
 
-struct PCB {
-	int occupied;
-	pid_t pid;
-	int startTimeSec;
-	int startTimeNano;
-};
+typedef struct PCB {
+	int occupied; //either true or false
+	pid_t pid; //process id of this child
+	int startTimeSeconds; //time when it was created
+	int startTimeNano; //time when it was created
+	int serviceTimeSeconds; //total seconds it has been scheduled
+	int serviceTimeNano; //total nanoseconds it has been scheduled
+	int eventWaitSeconds; //when does its events happen?
+	int eventWaitNano; //when does its events happen?
+	int blocked; //is this process waiting on an event?
+} PCB;
 
 // GLOBAL VARIABLES
 
 //For storing each child's PCB. Memory is allocated in main
-struct PCB *processTable;
+PCB *processTable;
 
 //Shared memory variables
 int sh_key;
@@ -38,7 +43,7 @@ int *shm_ptr;
 int msqid;
 
 //Needed for killing all child processes
-int arraySize;
+int processTableSize;
 
 // FUNCTION PROTOTYPES
 
@@ -121,13 +126,13 @@ int main(int argc, char** argv) {
 	}
 	
 	//sets the global var equal to the user arg
-	arraySize = proc;
+	processTableSize = proc;
 
 	//define a msgbuffer for each child to be created. Does it need to be size proc, or could it be size simul?
 	msgBuffer buf;
 
 	//allocates memory for the processTable stored in global memory
-	processTable = calloc(arraySize, sizeof(struct PCB));
+	processTable = calloc(processTableSize, sizeof(PCB));
 
 	pid_t wpid;
 	int status = 0;
@@ -167,7 +172,7 @@ void terminateProgram(int signum) {
 
 	//Kills any remaining active child processes
 	int count;
-	for(count = 0; count < arraySize; count++) {
+	for(count = 0; count < processTableSize; count++) {
 		if(processTable[count].occupied)
 			kill(processTable[count].pid, signum);
 	}
@@ -196,13 +201,13 @@ void sighandler(int signum) {
 void startPCB(int tableEntry, int pidNumber, int *time) {
 	processTable[tableEntry].occupied = 1;
 	processTable[tableEntry].pid = pidNumber;
-	processTable[tableEntry].startTimeSec = time[0];
+	processTable[tableEntry].startTimeSeconds = time[0];
 	processTable[tableEntry].startTimeNano = time[1];
 }
 
 void endPCB(int pidNumber) {
 	int i;
-	for(i = 0; i < arraySize; i++) {
+	for(i = 0; i < processTableSize; i++) {
 		if(processTable[i].pid == pidNumber) {
 			processTable[i].occupied = 0;
 			return;
@@ -213,8 +218,8 @@ void endPCB(int pidNumber) {
 void outputTable() {
 	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
 	int i;
-	for(i = 0; i < arraySize; i++) {
-		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSec, processTable[i].startTimeNano);
+	for(i = 0; i < processTableSize; i++) {
+		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano);
 	}
 }
 
