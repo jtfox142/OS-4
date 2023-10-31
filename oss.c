@@ -329,7 +329,7 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 			exit(1);
 	}
 
-	printf("message received from child\n");
+	printf("message received from child: %d\n", buf.msgData);
 	/*if(buf.msgData == SCHEDULED_TIME) {
 		processTable[process].occupied = 0;
 	}
