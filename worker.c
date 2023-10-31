@@ -45,11 +45,7 @@ int main(int argc, char** argv) {
 	if ((msqid = msgget(key, PERMS)) == -1) {
 		perror("msgget in child");
 		exit(1);
-	}
-	
-	//the TTL sent by oss
-	int nanoseconds;
-	nanoseconds = atoi(argv[1]);	
+	}	
        	
 	pid_t parentPid = getppid();
 	pid_t myPid = getpid();
@@ -57,9 +53,13 @@ int main(int argc, char** argv) {
 	int msgReceived; //set to 1 when message comes in from parent
 	msgReceived = 0;
 	while(!msgReceived) {
-		if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0)
+		if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
 			msgReceived = 1;
+			printf("message received from parent\n");
+		}
 	}
+
+	//TODO: Take action using buf.msgData from parent
 
 	//Send message back to parent
 	buf.mtype = parentPid;
@@ -69,6 +69,8 @@ int main(int argc, char** argv) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);
 	}
+	else
+		printf("message sent to parent\n");
 
 	return EXIT_SUCCESS;
 }

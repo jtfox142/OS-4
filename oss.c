@@ -47,17 +47,20 @@ int processTableSize;
 
 // FUNCTION PROTOTYPES
 void help();
+void initializeProcessTable();
 void incrementClock(int *shm_ptr);
 void terminateProgram(int signum);
 void sighandler(int signum);
-void startPCB(int tableEntry, int pidNumber, int *time);
-void endPCB(int pidNumber);
+void initializePCB(pid_t pid, int simulatedClock[]);
+void processEnded(int pidNumber);
 void outputTable();
 void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
 int randNumGenerator(int max, int pid);
 void enqueue(int element, struct queue *queue);
 int dequeue(struct queue *queue);
+void launchChild(int simulatedClock[], int maxSimulChildren);
+int checkChildren(int maxSimulChildren);
 
 int main(int argc, char** argv) {
 	//signals to terminate program properly if user hits ctrl+c or 60 seconds pass
@@ -65,11 +68,11 @@ int main(int argc, char** argv) {
 	signal(SIGALRM, sighandler);
 	signal(SIGINT, sighandler);	
 
-	int systemClock[2];
+	int simulatedClock[2];
 
 	//set clock to zero
-    systemClock[0] = 0;
-    systemClock[1] = 0;
+    simulatedClock[0] = 0;
+    simulatedClock[1] = 0;
 
 	//message queue setup
 	key_t key;
@@ -120,11 +123,37 @@ int main(int argc, char** argv) {
 	//sets the global var equal to the user arg
 	processTableSize = proc;
 
-	//define a msgbuffer for each child to be created. Does it need to be size proc, or could it be size simul?
-	msgBuffer buf;
+	//create a mesasge buffer for each child to be created
+	msgBuffer buf[processTableSize];
 
 	//allocates memory for the processTable stored in global memory
 	processTable = calloc(processTableSize, sizeof(struct PCB));
+	//sets all pids in the process table to 0
+	initializeProcessTable();
+
+	//TODO: stillChildrenToLaunch should check if we have initialized the final PCB yet. 
+	//TODO: childrenInSystem should check if any PCBs remain occupied
+	while(checkChildren(simul) || childrenInSystem()) {
+		//TODO: calls another function to check if runningChildren < simul, and if so, launches a new child.
+		launchChild(simulatedClock, simul);
+
+		//TODO: checks to see if a blocked process should be changed to ready
+		//checkBlockedQueue();
+
+		//TODO: calculates priorities of ready processes (look in notes). returns the highest priority pid
+		//pid_t priority;
+		//priority = calculatePriorities();
+
+		//TODO: schedules the process with the highest priority
+		//scheduleProcess(priority);
+
+		//TODO: Waits for a message back and updates appropriate structures
+		//receiveMessage(priority);
+
+		//TODO: Outputs the process table to a log file and the screen every half second, if the log file isn't full
+		//if(checkTime() && checkOutput()) 
+			//outputTable(fptr);
+	}
 
 	pid_t wpid;
 	int status = 0;
@@ -135,6 +164,7 @@ int main(int argc, char** argv) {
 
 // FUNCTION DEFINITIONS
 
+//TODO: Update help message and README.md
 void help() {
     printf("This program is designed to have a parent process fork off into child processes.\n");
 	printf("The child processes use a simulated clock in shared memory to keep track of runtime.\n");
@@ -149,14 +179,75 @@ void help() {
 	exit(1);
 }
 
-void incrementClock(int *shm_ptr) {
-	shm_ptr[1] += 50000;
-	if(shm_ptr[1] >= 1000000000) {
-		shm_ptr[1] = 0;
-		shm_ptr[0] += 1;
+//sets all initial pid values to 0
+void initializeProcessTable() {
+	for(int count = 0; count < processTableSize; count++) {
+		processTable[count].pid = 0;
 	}
 }
 
+//initializes values of the pcb
+void initializePCB(pid_t pid, int simulatedClock[]) {
+	int index;
+	index = 0;
+
+	while(processTable[index].pid != 0)
+		index++;
+
+	processTable[index].occupied = 1;
+	processTable[index].pid = pid;
+	processTable[index].startTimeSeconds = simulatedClock[0];
+	processTable[index].startTimeNano = simulatedClock[1];
+	processTable[index].serviceTimeSeconds = 0;
+	processTable[index].serviceTimeNano = 0;
+	processTable[index].eventWaitSeconds = 0;
+	processTable[index].eventWaitNano = 0;
+	processTable[index].blocked = 0;
+}
+
+//Checks to see if another child can be launched. If so, it launches a new child.
+void launchChild(int simulatedClock[], int maxSimulChildren) {
+	if(checkChildren(maxSimulChildren)) {
+		pid_t newChild;
+		newChild = fork();
+		if(newChild < 0) {
+			perror("Fork failed");
+			exit(-1);
+		}
+		else if(newChild == 0) {
+			execlp("./worker", NULL);
+       		exit(1);
+       		}
+		else {
+			initializePCB(newChild, simulatedClock);
+		}
+	}
+}
+
+//Returns 1 if more children can be launched, returns 0 otherwise
+int checkChildren(int maxSimulChildren) {
+	int runningChildren;
+	runningChildren = 0;
+	for(int count = 0; count < processTableSize; count++) {
+		if(processTable[count].occupied)
+			runningChildren++;
+	}
+
+	if(runningChildren < maxSimulChildren)
+		return 1;
+
+	return 0;
+}
+
+void incrementClock(int simulatedClock[]) {
+	simulatedClock[1] += 50000;
+	if(simulatedClock[1] >= 1000000000) {
+		simulatedClock[1] = 0;
+		simulatedClock[0] += 1;
+	}
+}
+
+//TODO: close the file
 void terminateProgram(int signum) {
 	//Kills any remaining active child processes
 	int count;
@@ -185,15 +276,8 @@ void sighandler(int signum) {
 	printf("If you're seeing this, then bad things have happened.\n");
 }
 
-
-void startPCB(int tableEntry, int pidNumber, int *time) {
-	processTable[tableEntry].occupied = 1;
-	processTable[tableEntry].pid = pidNumber;
-	processTable[tableEntry].startTimeSeconds = time[0];
-	processTable[tableEntry].startTimeNano = time[1];
-}
-
-void endPCB(int pidNumber) {
+//updates the PCB of a process that has ended
+void processEnded(int pidNumber) {
 	int i;
 	for(i = 0; i < processTableSize; i++) {
 		if(processTable[i].pid == pidNumber) {
@@ -203,11 +287,13 @@ void endPCB(int pidNumber) {
 	}
 }
 
-void outputTable() {
+//TODO: Increment time by a small amount every time OSS updates a data structure
+void outputTable(FILE *file) {
 	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
 	int i;
 	for(i = 0; i < processTableSize; i++) {
 		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano);
+		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\n%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano);
 	}
 }
 
