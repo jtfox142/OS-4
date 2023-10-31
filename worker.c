@@ -72,11 +72,6 @@ int main(int argc, char** argv) {
 	else
 		printf("message sent to parent\n");
 
-	if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
-			msgReceived = 1;
-			printf("message received from parent\n");
-		}
-
 	printf("Child terminating\n");
 	return EXIT_SUCCESS;
 }
