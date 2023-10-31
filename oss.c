@@ -39,10 +39,7 @@ struct queue {
 // GLOBAL VARIABLES
 //For storing each child's PCB. Memory is allocated in main
 struct PCB *processTable;
-//Shared memory variables
-int sh_key;
-int shm_id;
-int *shm_ptr;
+
 //Message queue id
 int msqid;
 //Needed for killing all child processes
@@ -56,8 +53,8 @@ void sighandler(int signum);
 void startPCB(int tableEntry, int pidNumber, int *time);
 void endPCB(int pidNumber);
 void outputTable();
-void sendingOutput(int chldNum, int chldPid, FILE *file);
-void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf);
+void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
+void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
 int randNumGenerator(int max, int pid);
 void enqueue(int element, struct queue *queue);
 int dequeue(struct queue *queue);
@@ -68,24 +65,11 @@ int main(int argc, char** argv) {
 	signal(SIGALRM, sighandler);
 	signal(SIGINT, sighandler);	
 
-	//allocate shared memory
-	sh_key = ftok("./oss.c", 0);
-	shm_id = shmget(sh_key, sizeof(int) * 2, IPC_CREAT | 0666);
-	if(shm_id <= 0) {
-		printf("Shared memory allocation failed\n");
-		exit(1);
-	}
+	int systemClock[2];
 
-	//attach to shared memory
-	shm_ptr = shmat(shm_id, 0 ,0);
-	if(shm_ptr <= 0) {
-		printf("Attaching to shared memory failed\n");
-		exit(1);
-	}
-	
 	//set clock to zero
-    shm_ptr[0] = 0;
-    shm_ptr[1] = 0;
+    systemClock[0] = 0;
+    systemClock[1] = 0;
 
 	//message queue setup
 	key_t key;
@@ -174,10 +158,6 @@ void incrementClock(int *shm_ptr) {
 }
 
 void terminateProgram(int signum) {
-	//detaches from and deletes shared memory
-	shmdt(shm_ptr);
-	shmctl(shm_id, IPC_RMID, NULL);
-
 	//Kills any remaining active child processes
 	int count;
 	for(count = 0; count < processTableSize; count++) {
@@ -231,13 +211,13 @@ void outputTable() {
 	}
 }
 
-void sendingOutput(int chldNum, int chldPid, FILE *file) {
-	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
+void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file) {
+	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
 }
 
-void receivingOutput(int chldNum, int chldPid, FILE *file, msgBuffer rcvbuf) {
+void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf) {
 	if(rcvbuf.msgData != 0) {
-		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, shm_ptr[0], shm_ptr[1]);
+		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
 	}
 	else {
 		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
