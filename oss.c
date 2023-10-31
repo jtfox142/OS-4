@@ -265,8 +265,11 @@ int checkChildren(int maxSimulChildren) {
 
 //If the maximum number of children has not been reached, return true. Otherwise return false
 int stillChildrenToLaunch() {
-	if(processTable[processTableSize].pid == 0)
+	printf("Checking for children to launch\n");
+	if(processTable[processTableSize - 1].pid == 0) {
+		printf("Returning 1\n");
 		return 1;
+	}
 	return 0;
 }
 
