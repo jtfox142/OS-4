@@ -323,8 +323,9 @@ int scheduleProcess(pid_t process, msgBuffer buf) {
 //Receives a message back from child that indicates how much time the child used and if it is blocked
 //Updates process table accordingly
 void receiveMessage(pid_t process, msgBuffer buf) {
+	msgBuffer rcvbuf;
 	printf("waiting on message from child\n");
-	if(msgrcv(msqid, &buf, sizeof(msgBuffer), process, 0) == -1) {
+	if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
 			perror("msgrcv from child failed\n");
 			exit(1);
 	}
