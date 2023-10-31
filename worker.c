@@ -63,15 +63,15 @@ int main(int argc, char** argv) {
 
 	//Send message back to parent
 	buf.mtype = parentPid;
-	buf.intData = parentPid;
-	buf.msgData = 0;//TODO: fill in return value to parent
+	buf.intData = 10;
+	buf.msgData = 10;//TODO: fill in return value to parent
 	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);
 	}
 	else
 		printf("message sent to parent\n");
-		
+
 	if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
 			msgReceived = 1;
 			printf("message received from parent\n");
