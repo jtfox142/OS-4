@@ -512,5 +512,6 @@ int initializeQueue(pid_t *queue) {
 		queue[count] = -1;
 		printf("queue count at initialization: %d\n", queue[count]);
 	}
+	printf("queue[1]: %d\n", queue[1]);
 	return 1;
 }
