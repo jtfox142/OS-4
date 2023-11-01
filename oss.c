@@ -92,9 +92,9 @@ int main(int argc, char** argv) {
     simulatedClock[1] = 0;
 
 	readyQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
-	intiializeQueue(readyQueue);
+	initializeQueue(readyQueue);
 	blockedQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
-	ititializeQueue(blockedQueue);
+	initializeQueue(blockedQueue);
 
 	//message queue setup
 	key_t key;
