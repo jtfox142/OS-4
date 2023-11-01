@@ -392,6 +392,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 pid_t calculatePriorities(pid_t *ready) {
 	printf("am i even called\n");
 	pid_t priorityPid;
+	priorityPid = readyQueue[0];
 	double highestPriority;
 	highestPriority = 0;
 	pid_t currentPid;
@@ -400,11 +401,12 @@ pid_t calculatePriorities(pid_t *ready) {
 	//for each entry in the readyqueue, calculate the priority. if the current priority > highest, it = highest
 
 	for(int count = 0; count < processTableSize; count++) {
-		if(readyQueue[count] == -1)
-			continue;
 		currentPid = readyQueue[count];
 		printf("currentPid: %d\n", currentPid);
-		currentPriority = priorityArithmetic(findTableIndex(currentPid));
+		if(currentPid = -1)
+			currentPriority = -1;
+		else
+			currentPriority = priorityArithmetic(findTableIndex(currentPid));
 		if(currentPriority >= highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
