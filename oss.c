@@ -81,6 +81,7 @@ int stillChildrenToLaunch();
 int childrenInSystem();
 int findTableIndex(pid_t pid);
 void calculateEventTime(pid_t process, int entry);
+int priorityArithmetic(int currentEntry);
 
 
 int main(int argc, char** argv) {
@@ -306,8 +307,6 @@ void scheduleProcess(pid_t process, msgBuffer buf) {
 		perror("msgsnd to child failed\n");
 		exit(1);
 	}
-	
-	return 1;
 }
 
 //Receives a message back from child that indicates how much time the child used and if it is blocked
@@ -502,7 +501,9 @@ pid_t dequeue(struct queue *queue) {
 
 pid_t front(struct queue *queue)
 {
-    if(isEmpty(queue))
-        return -1;
+    if(queue->front == -1 || queue->front > queue->rear) {  
+        printf("Queue is empty");  
+        return -1;  
+    } 
     return queue->entries[queue->front];
 }
