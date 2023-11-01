@@ -98,7 +98,11 @@ int main(int argc, char** argv) {
     simulatedClock[1] = 0;
 
 	readyQueue = (struct queue*)malloc(sizeof(struct queue));
+	readyQueue->front = -1;
+	readyQueue->rear = -1;
 	blockedQueue = (struct queue*)malloc(sizeof(struct queue));
+	blockedQueue->front = -1;
+	blockedQueue->rear = -1;
 
 	//message queue setup
 	key_t key;
