@@ -10,7 +10,6 @@
 
 typedef struct msgbuffer {
 	long mtype;
-	int msgData;
 	int intData;
 } msgbuffer;
 
@@ -30,7 +29,6 @@ int main(int argc, char** argv) {
 
 	msgbuffer buf;
 	buf.mtype = 1;
-	buf.msgData = 0;
 	buf.intData = 0;
 	int msqid = 0;
 	key_t key;
@@ -59,12 +57,11 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	//TODO: Take action using buf.msgData from parent
+	//TODO: Take action using buf.intData from parent
 
 	//Send message back to parent
 	buf.mtype = parentPid;
-	buf.intData = 10;
-	buf.msgData = 10;//TODO: fill in return value to parent
+	buf.intData = 10; //TODO: fill in return value to parent
 	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);

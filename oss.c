@@ -15,7 +15,6 @@
 
 typedef struct msgBuffer {
 	long mtype;
-	int msgData;
 	int intData;
 } msgBuffer;
 
@@ -279,7 +278,7 @@ int childrenInSystem() {
 	printf("Checking for children in system\n");
 	for(int count = 0; count < processTableSize; count++) {
 		if(processTable[count].occupied) {
-			printf("children in system is true\n");
+			printf("children in system is true: pcb %d is %d\n", count, processTable[count].occupied);
 			return 1;
 		}
 	}
@@ -305,12 +304,10 @@ int scheduleProcess(pid_t process, msgBuffer buf) {
 		return 0;
 	}
 	buf[index].mtype = process;
-	buf[index].intData = process;
-	buf[index].msgData = 10;*/
+	buf[index].intData = 10;*/
 
 	buf.mtype = process;
-	buf.intData = process;
-	buf.msgData = SCHEDULED_TIME;
+	buf.intData = SCHEDULED_TIME;
 
 	if(msgsnd(msqid, &buf, sizeof(msgBuffer) - sizeof(long), 0) == -1) {
 		perror("msgsnd to child failed\n");
@@ -330,14 +327,14 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 			exit(1);
 	}
 
-	printf("message received from child: %d\n", buf.intData);
-	if(buf.msgData == SCHEDULED_TIME) {
+	printf("message received from child: %d\n", rcvbuf.intData);
+	if(rcvbuf.intData == SCHEDULED_TIME) {
 		processTable[process].occupied = 0;
 	}/*
-	else if(buf.msgData > 0) {
+	else if(buf.intData > 0) {
 		processTable[process].blocked = 1;
 	}
-	processTable[process].serviceTimeNano = processTable[process].serviceTimeNano + buf.msgData;*/
+	processTable[process].serviceTimeNano = processTable[process].serviceTimeNano + buf.intData;*/
 
 }
 
@@ -404,7 +401,7 @@ void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file) {
 }
 
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf) {
-	if(rcvbuf.msgData != 0) {
+	if(rcvbuf.intData != 0) {
 		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
 	}
 	else {
