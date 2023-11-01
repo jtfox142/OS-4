@@ -72,7 +72,7 @@ int dequeue(struct queue *queue);
 int checkChildren(int maxSimulChildren);
 int stillChildrenToLaunch();
 int childrenInSystem();
-int findBufferIndex(pid_t pid);
+int findTableIndex(pid_t pid);
 
 
 int main(int argc, char** argv) {
@@ -287,7 +287,7 @@ int childrenInSystem() {
 }
 
 //returns the buffer index corresponding to a given pid
-int findBufferIndex(pid_t pid) {
+int findTableIndex(pid_t pid) {
 	for(int count = 0; count < processTableSize; count++) {
 		if(processTable[count].pid == pid)
 			return count;
@@ -328,8 +328,9 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 	}
 
 	printf("message received from child: %d\n", rcvbuf.intData);
+	int entry = findTableIndex(process);
 	if(rcvbuf.intData == SCHEDULED_TIME) {
-		processTable[process].occupied = 0;
+		processTable[entry].occupied = 0;
 	}/*
 	else if(buf.intData > 0) {
 		processTable[process].blocked = 1;
