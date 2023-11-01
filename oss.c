@@ -492,7 +492,7 @@ void enqueue(pid_t element, struct queue *queue) {
         queue->front = 0;  
     }  
 	printf("bottom of second if\n");
-    queue->rear++;  
+    queue->rear = queue->rear + 1;  
 	printf("after rear increments\n");
     queue->entries[queue->rear] = element;  
 }  
