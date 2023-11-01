@@ -375,7 +375,7 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 
 	int entry;
 	entry = findTableIndex(pid);
-	if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano >= simulatedClock[1]) {
+	if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
 		dequeue(blocked);
 		enqueue(pid, ready);
 	}
