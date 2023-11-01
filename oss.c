@@ -11,7 +11,9 @@
 
 #define PERMS 0644
 #define MAX_CHILDREN 20
-#define SCHEDULED_TIME 10
+#define SCHEDULED_TIME 10000000
+#define ONE_SECOND 1000000000
+#define STANDARD_CLOCK_INCREMENT 1050
 
 typedef struct msgBuffer {
 	long mtype;
@@ -31,15 +33,17 @@ struct PCB {
 };
 
 struct queue {
-	int front;
-	int rear;
-	int entries[MAX_CHILDREN];
+	pid_t front;
+	pid_t rear;
+	pid_t entries[MAX_CHILDREN];
 };
 
 // GLOBAL VARIABLES
 //For storing each child's PCB. Memory is allocated in main
 struct PCB *processTable;
-
+//Self descriptive. Easier than passing it to functions that don't actually need it, just so that it can get 
+//passed into the one that does.
+int simulatedClock[2];
 //Message queue id
 int msqid;
 //Needed for killing all child processes
@@ -50,29 +54,31 @@ int processTableSize;
 void help();
 //Process table functions
 void initializeProcessTable();
-void initializePCB(pid_t pid, int simulatedClock[]);
+void initializePCB(pid_t pid);
 void processEnded(int pidNumber);
 void outputTable();
 //OSS functions
-void incrementClock(int *shm_ptr);
-void launchChild(int simulatedClock[], int maxSimulChildren);
+void incrementClock(int timePassed);
+void launchChild(int maxSimulChildren);
 //TODO: int calculatePriority();
-int scheduleProcess(pid_t process, msgBuffer buf);
-void receiveMessage(pid_t process, msgBuffer buf);
+void scheduleProcess(pid_t process, msgBuffer buf);
+void receiveMessage(pid_t process, msgBuffer buf, struct queue *blockedQueue);
+void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue);
 //Program end functions
 void terminateProgram(int signum);
 void sighandler(int signum);
 //Log file functions
 void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
-//Queue fucntions
-void enqueue(int element, struct queue *queue);
-int dequeue(struct queue *queue);
-//Checking functions
+//Queue functions
+void enqueue(pid_t element, struct queue *queue);
+pid_t dequeue(struct queue *queue);
+//Helper functions
 int checkChildren(int maxSimulChildren);
 int stillChildrenToLaunch();
 int childrenInSystem();
 int findTableIndex(pid_t pid);
+void calculateEventTime(pid_t process, int entry);
 
 
 int main(int argc, char** argv) {
@@ -80,8 +86,6 @@ int main(int argc, char** argv) {
 	alarm(60);
 	signal(SIGALRM, sighandler);
 	signal(SIGINT, sighandler);	
-
-	int simulatedClock[2];
 
 	//set clock to zero
     simulatedClock[0] = 0;
@@ -149,7 +153,7 @@ int main(int argc, char** argv) {
 	//childrenInSystem checks if any PCBs remain occupied
 	while(stillChildrenToLaunch() || childrenInSystem()) {
 		//calls another function to check if runningChildren < simul, and if so, launches a new child.
-		launchChild(simulatedClock, simul);
+		launchChild(simul);
 
 		//TODO: checks to see if a blocked process should be changed to ready
 		//checkBlockedQueue();
@@ -161,15 +165,11 @@ int main(int argc, char** argv) {
 		pid_t priority = processTable[0].pid;
 		printf("first pid: %d\n", priority);
 		//schedules the process with the highest priority
-		if(!scheduleProcess(priority, buf)) {
-			perror("Failed to schedule process");
-			exit(1);
-		}
-		else
-			printf("message sent from parent.\n");
+		scheduleProcess(priority, buf);	
+		printf("message sent from parent.\n");
 
 		//TODO: Waits for a message back AND UPDATES APPROPRIATE STRUCTURES
-		receiveMessage(priority, buf);
+		receiveMessage(priority, buf, blockedQueue);
 
 		//TODO: Outputs the process table to a log file and the screen every half second, if the log file isn't full
 		//if(checkTime() && checkOutput()) 
@@ -208,7 +208,7 @@ void initializeProcessTable() {
 }
 
 //initializes values of the pcb
-void initializePCB(pid_t pid, int simulatedClock[]) {
+void initializePCB(pid_t pid) {
 	int index;
 	index = 0;
 
@@ -227,7 +227,7 @@ void initializePCB(pid_t pid, int simulatedClock[]) {
 }
 
 //Checks to see if another child can be launched. If so, it launches a new child.
-void launchChild(int simulatedClock[], int maxSimulChildren) {
+void launchChild(int maxSimulChildren) {
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
 		pid_t newChild;
 		newChild = fork();
@@ -242,7 +242,7 @@ void launchChild(int simulatedClock[], int maxSimulChildren) {
        		exit(1);
        		}
 		else {
-			initializePCB(newChild, simulatedClock);
+			initializePCB(newChild);
 		}
 	}
 }
@@ -297,15 +297,8 @@ int findTableIndex(pid_t pid) {
 
 //"Schedules" a process by sending it a message to indicate that it should run
 //Returns 1 if a process was successful scheduled
-int scheduleProcess(pid_t process, msgBuffer buf) {
-	/*TODO: int index = findBufferIndex(process);
-	if(!index) {
-		printf("Attempted to schedule a process that has not started\n");
-		return 0;
-	}
-	buf[index].mtype = process;
-	buf[index].intData = 10;*/
-
+void scheduleProcess(pid_t process, msgBuffer buf) {
+	incrementClock(STANDARD_CLOCK_INCREMENT);
 	buf.mtype = process;
 	buf.intData = SCHEDULED_TIME;
 
@@ -319,7 +312,7 @@ int scheduleProcess(pid_t process, msgBuffer buf) {
 
 //Receives a message back from child that indicates how much time the child used and if it is blocked
 //Updates process table accordingly
-void receiveMessage(pid_t process, msgBuffer buf) {
+void receiveMessage(pid_t process, msgBuffer buf, struct queue *blockedQueue) {
 	msgBuffer rcvbuf;
 	printf("waiting on message from child\n");
 	if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
@@ -328,21 +321,42 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 	}
 
 	printf("message received from child: %d\n", rcvbuf.intData);
-	int entry = findTableIndex(process);
-	if(rcvbuf.intData == SCHEDULED_TIME) {
-		processTable[entry].occupied = 0;
-	}/*
-	else if(buf.intData > 0) {
-		processTable[process].blocked = 1;
-	}
-	processTable[process].serviceTimeNano = processTable[process].serviceTimeNano + buf.intData;*/
-
+	updateTable(process, rcvbuf, blockedQueue);
 }
 
-void incrementClock(int simulatedClock[]) {
-	simulatedClock[1] += 50000;
-	if(simulatedClock[1] >= 1000000000) {
-		simulatedClock[1] = 0;
+//Updates the process control table
+void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue) {
+	int entry = findTableIndex(process);
+	if(rcvbuf.intData < 0) {
+		processTable[entry].occupied = 0;
+	}
+	else if(rcvbuf.intData < SCHEDULED_TIME) {
+		processTable[entry].blocked = 1;
+		enqueue(processTable[entry].pid, blockedQueue);
+		calculateEventTime(process, entry);
+	}
+	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + rcvbuf.intData;
+	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
+		processTable[entry].serviceTimeSeconds = processTable[entry].serviceTimeSeconds + 1;
+		processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano - ONE_SECOND;
+	}
+}
+
+//Calculates the event wait time for a blocked process
+void calculateEventTime(pid_t process, int entry) {
+	const int SEC_MAX = 5;
+	//1000 milliseconds = 1 second
+	const int NANO_MAX = ONE_SECOND;
+
+	srand(process);
+	processTable[entry].eventWaitSeconds = simulatedClock[0] + ((rand() % SEC_MAX) + 1);
+	processTable[entry].eventWaitNano = simulatedClock[1] + ((rand() % NANO_MAX) + 1);
+}
+
+void incrementClock(int timePassed) {
+	simulatedClock[1] += timePassed;
+	if(simulatedClock[1] >= ONE_SECOND) {
+		simulatedClock[1] -= ONE_SECOND;
 		simulatedClock[0] += 1;
 	}
 }
@@ -413,7 +427,7 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 
 //I yanked some generic queue code from https://www.javatpoint.com/queue-in-c
 //and then modified it to fit my needs
-void enqueue(int element, struct queue *queue) {  
+void enqueue(pid_t element, struct queue *queue) {  
     if (queue->rear == processTableSize - 1) {  
         printf("Queue is full");  
         return;  
@@ -425,12 +439,12 @@ void enqueue(int element, struct queue *queue) {
     queue->entries[queue->rear] = element;  
 }  
   
-int dequeue(struct queue *queue) {  
+pid_t dequeue(struct queue *queue) {  
     if (queue->front == -1 || queue->front > queue->rear) {  
         printf("Queue is empty");  
         return -1;  
     }  
-    int element = queue->entries[queue->front];  
+    pid_t element = queue->entries[queue->front];  
     queue->front++;  
     return element;  
 }  
