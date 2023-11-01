@@ -78,10 +78,15 @@ int main(int argc, char** argv) {
 
 	//TODO: Take action using buf.intData from parent
 	int action = decideAction();
-	if(action == 2)
+	printf("Action: %d\n", action);
+	if(action == 2) {
 		buf.intData = decideTimeUsed(buf);
-	else if(action == 3)
+		printf("timeused: %d\n", buf.intData);
+	}
+	else if(action == 3) {
 		buf.intData = -decideTimeUsed(buf);
+		printf("timeused: %d\n", buf.intData);
+	}
 
 	//Send message back to parent
 	buf.mtype = parentPid;
