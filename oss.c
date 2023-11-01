@@ -36,8 +36,8 @@ struct PCB {
 //For storing each child's PCB. Memory is allocated in main
 struct PCB *processTable;
 //Resources for the scheduler
-pid_t *readyQueue;
-pid_t *blockedQueue;
+int *readyQueue;
+int *blockedQueue;
 //Self descriptive. Easier than passing it to functions that don't actually need it, just so that it can get 
 //passed into the one that does.
 int simulatedClock[2];
@@ -91,10 +91,10 @@ int main(int argc, char** argv) {
     simulatedClock[0] = 0;
     simulatedClock[1] = 0;
 
-	readyQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
+	readyQueue = (int*)malloc(processTableSize * sizeof(int));
 	printf("Im trying\n");
 	initializeQueue(readyQueue);
-	blockedQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
+	blockedQueue = (int*)malloc(processTableSize * sizeof(int));
 	initializeQueue(blockedQueue);
 
 	//message queue setup
@@ -503,7 +503,7 @@ int removeItemFromQueue(pid_t *queue, pid_t itemToRemove) {
 	return 0;
 }
 
-int initializeQueue(pid_t *queue) {
+int initializeQueue(int *queue) {
 	printf("did i do the thing\n");
 	queue[0] = -1;
 	printf("queue[0]: %d\n", queue[0]);
