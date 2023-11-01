@@ -400,6 +400,8 @@ pid_t calculatePriorities(pid_t *ready) {
 	//for each entry in the readyqueue, calculate the priority. if the current priority > highest, it = highest
 
 	for(int count = 0; count < processTableSize; count++) {
+		if(readyQueue[count] == -1)
+			continue;
 		currentPid = readyQueue[count];
 		currentPriority = priorityArithmetic(findTableIndex(currentPid));
 		if(currentPriority > highestPriority) {
