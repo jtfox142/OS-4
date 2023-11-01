@@ -246,6 +246,7 @@ void launchChild(int maxSimulChildren, struct queue *ready) {
 			enqueue(newChild, ready);
 		}
 	}
+	printf("boop1\n");
 }
 
 //Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
@@ -363,7 +364,9 @@ void incrementClock(int timePassed) {
 //checks to see if a blocked process should be changed to ready
 void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 	pid_t pid;
+	printf("boop2\n");
 	pid = front(blocked);
+	printf("boop3\n");
 
 	int entry;
 	entry = findTableIndex(pid);
