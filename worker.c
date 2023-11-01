@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 				* Send back time used but negative(negative value)
 	*/
 
-	printf("child created\n");
+	printf("child created: %d\n", getpid());
 	msgbuffer buf;
 	buf.mtype = 1;
 	buf.intData = 0;
