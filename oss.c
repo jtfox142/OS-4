@@ -390,6 +390,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 }
 
 pid_t calculatePriorities(pid_t *ready) {
+	printf("am i even called\n");
 	pid_t priorityPid;
 	double highestPriority;
 	highestPriority = 0;
