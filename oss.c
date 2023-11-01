@@ -60,7 +60,7 @@ void outputTable();
 //OSS functions
 void incrementClock(int timePassed);
 void launchChild(int maxSimulChildren, struct queue *ready);
-//TODO: int calculatePriority();
+int calculatePriority(struct queue *ready);
 void scheduleProcess(pid_t process, msgBuffer buf);
 void receiveMessage(pid_t process, msgBuffer buf, struct queue *blockedQueue);
 void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue);
@@ -143,7 +143,6 @@ int main(int argc, char** argv) {
 	processTableSize = proc;
 
 	//create a mesasge buffer for each child to be created
-	//TODO: i don't think i need this: msgBuffer buf[processTableSize];
 	msgBuffer buf;
 
 	//allocates memory for the processTable stored in global memory
@@ -441,11 +440,11 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 //I yanked some generic queue code from https://www.javatpoint.com/queue-in-c
 //and then modified it to fit my needs
 void enqueue(pid_t element, struct queue *queue) {  
-    if (queue->rear == processTableSize - 1) {  
+    if(queue->rear == processTableSize - 1) {  
         printf("Queue is full");  
         return;  
     }  
-    if (queue->front == -1) {  
+    if(queue->front == -1) {  
         queue->front = 0;  
     }  
     queue->rear++;  
@@ -453,7 +452,7 @@ void enqueue(pid_t element, struct queue *queue) {
 }  
   
 void dequeue(struct queue *queue) {  
-    if (queue->front == -1 || queue->front > queue->rear) {  
+    if(queue->front == -1 || queue->front > queue->rear) {  
         printf("Queue is empty");  
         return -1;  
     }  
@@ -463,7 +462,14 @@ void dequeue(struct queue *queue) {
 
 pid_t front(struct queue *queue)
 {
-    if (isEmpty(queue))
+    if(isEmpty(queue))
         return -1;
     return queue->entries[queue->front];
+}
+
+pid_t all(struct queue *queue)
+{
+	if(isEmpty(queue))
+        return -1;
+	
 }
