@@ -84,7 +84,7 @@ int stillChildrenToLaunch();
 int childrenInSystem();
 int findTableIndex(pid_t pid);
 void calculateEventTime(pid_t process, int entry);
-int priorityArithmetic(int currentEntry);
+double priorityArithmetic(int currentEntry);
 
 
 int main(int argc, char** argv) {
@@ -385,10 +385,10 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 
 pid_t calculatePriorities(struct queue *ready) {
 	pid_t priorityPid;
-	int highestPriority;
+	double highestPriority;
 	highestPriority = 0;
 	pid_t currentPid;
-	int currentPriority;
+	double currentPriority;
 	int currentEntry;
 
 	int count;
@@ -399,8 +399,9 @@ pid_t calculatePriorities(struct queue *ready) {
 		currentPid = dequeue(ready);
 		printf("here2\n");
 		currentEntry = findTableIndex(currentPid);
-		currentPriority = priorityArithmetic(currentEntry);
 		printf("here3\n");
+		currentPriority = priorityArithmetic(currentEntry);
+		printf("here4\n");
 		enqueue(currentPid, ready);
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
@@ -412,9 +413,9 @@ pid_t calculatePriorities(struct queue *ready) {
 	return priorityPid;
 }
 
-int priorityArithmetic(int currentEntry) {
-	int serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
-	int timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
+double priorityArithmetic(int currentEntry) {
+	double serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
+	double timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
 	return (serviceTime / timeInSystem); 
 }
 
