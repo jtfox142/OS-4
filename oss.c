@@ -505,6 +505,8 @@ int removeItemFromQueue(pid_t *queue, pid_t itemToRemove) {
 
 void initializeQueue(pid_t *queue) {
 	printf("did i do the thing\n");
+	queue[0] = -1;
+	printf("queue[0]: %d\n", queue[0]);
 	for(int count = 0; count < processTableSize; count++) {
 		queue[count] = -1;
 		printf("queue count at initialization: %d\n", queue[count]);
