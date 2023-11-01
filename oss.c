@@ -386,22 +386,14 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 pid_t calculatePriorities(struct queue *ready) {
 	pid_t priorityPid;
 	int highestPriority;
+	highestPriority = 0;
 	pid_t currentPid;
 	int currentPriority;
 	int currentEntry;
 
-	priorityPid = dequeue(ready);
-	//Ready queue should never be empty
-	if(currentPid == -1) {
-		printf("OSS: Ready queue is empty.\n");
-		return -1;
-	}
-	currentEntry = findTableIndex(currentPid);
-	highestPriority = priorityArithmetic(currentEntry);
-	enqueue(currentPid, ready);
-	
 	int count;
-	count = 1;
+	count = 0;
+	//i know that this iterates more times than it has to. sorry.
 	while(count < MAX_CHILDREN - 1) {
 		currentPid = dequeue(ready);
 		currentEntry = findTableIndex(currentPid);
@@ -411,6 +403,7 @@ pid_t calculatePriorities(struct queue *ready) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
 		}
+		count++;
 	}
 
 	return priorityPid;
