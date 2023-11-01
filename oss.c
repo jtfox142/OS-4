@@ -197,16 +197,16 @@ void checkTime(int *outputTimer, FILE *fptr) {
 
 //TODO: Update help message and README.md
 void help() {
-    printf("This program is designed to have a parent process fork off into child processes.\n");
-	printf("The child processes use a simulated clock in shared memory to keep track of runtime.\n");
-	printf("The runtime is a random number of seconds and nanoseconds between 1 and the time limit prescribed by the user.\n");
-	printf("The child processes are only allowed to check the clock when they receive a message from the parent through a message queue.\n\n");
+    printf("This program is designed to simulate a process scheduler.\n");
+	printf("The main program (is supposed to) launch child workers periodically and launch them based upon priority.\n");
+	printf("The runtime of each worker is based upon a fixed integer, of which it may only use part of.\n");
+	printf("The child processes will either use the whole time and not terminate, use part of the time and terminate, or use part of the time and go into a blocked queue.\n\n");
     printf("The executable takes four flags: [-n proc], [-s simul], [-t timelimit], and [-f logfile].\n");
     printf("The value of proc determines the total number of child processes to be produced.\n");
 	printf("The value of simul determines the number of children that can run simultaneously.\n");
-	printf("The value of timelimit determines the maximum number of seconds that a child process can take.\n");
+	printf("The value of timelimit (is supposed to) determine how often new children are launched.\n");
 	printf("The file name provided will be used as a logfile to which this program outputs.\n");
-	printf("\nMADE BY JACOB (JT) FOX\nOctober 12th, 2023\n");
+	printf("\nMADE BY JACOB (JT) FOX\nOctober 31st, 2023\n");
 	exit(1);
 }
 
