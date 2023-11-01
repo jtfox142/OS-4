@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
 		launchChild(simul, readyQueue);
 
 		//checks to see if a blocked process should be changed to ready
-		checkBlockedQueue(blockedQueue, readyQueue);
+		//checkBlockedQueue(blockedQueue, readyQueue);
 
 		//calculates priorities of ready processes (look in notes). returns the highest priority pid
 		pid_t priority;
