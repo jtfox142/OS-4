@@ -249,11 +249,10 @@ void launchChild(int maxSimulChildren, struct queue *ready) {
        		}
 		else {
 			initializePCB(newChild);
-			printf("boop1\n");
 			enqueue(newChild, ready);
 		}
 	}
-	printf("boop1.5\n");
+	printf("leaving launchChild\n");
 }
 
 //Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
@@ -371,9 +370,8 @@ void incrementClock(int timePassed) {
 //checks to see if a blocked process should be changed to ready
 void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 	pid_t pid;
-	printf("boop2\n");
+	printf("entering CheckBlockedQueue\n");
 	pid = front(blocked);
-	printf("boop3\n");
 
 	int entry;
 	entry = findTableIndex(pid);
@@ -381,6 +379,7 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 		dequeue(blocked);
 		enqueue(pid, ready);
 	}
+	printf("exiting checkBlockedQueue\n")
 }
 
 pid_t calculatePriorities(struct queue *ready) {
@@ -494,27 +493,29 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 void enqueue(pid_t element, struct queue *queue) {  
 	printf("in enqueue\n");
     if(queue->rear == processTableSize - 1) {  
-        printf("Queue is full");  
+        printf("Queue is full\n");  
         return;  
     }  
-	printf("top of second if\n");
+	
     if(queue->front == -1) {  
 		printf("incrementing front\n");
         queue->front = 0;  
     }  
-	printf("bottom of second if\n");
-    (*queue).rear = queue->rear + 1;  
-	printf("after rear increments\n");
+	
+    queue->rear = queue->rear + 1;  
     queue->entries[queue->rear] = element;  
+	printf("leaving enqueue\n");
 }  
   
 pid_t dequeue(struct queue *queue) {  
+	printf("in dequeue\n");
     if(queue->front == -1 || queue->front > queue->rear) {  
-        printf("Queue is empty");  
+        printf("Queue is empty\n");  
         return -1;  
     }  
     pid_t element = queue->entries[queue->front];  
-    queue->front++;  
+    queue->front++; 
+	printf("leaving dequeue\n");
 	return element;  
 }  
 
