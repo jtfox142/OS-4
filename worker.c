@@ -34,19 +34,6 @@ int decideTimeUsed(msgbuffer buf) {
 
 int main(int argc, char** argv) {
 
-	/*
-	TODO: 
-		* Create random number generator (RNG)
-		* Use RNG to decide which action worker takes
-			* Use all of time sent by parent
-				* Send back timeUsed (will equal the time sent to child by parent)
-			* Use % of time sent by parent, go to blocked queue
-				* Send back time used (positive remainder)
-			* Use % of time sent by parent, terminate
-				* Send back time used but negative(negative value)
-	*/
-
-	printf("child created: %d\n", getpid());
 	msgbuffer buf;
 	buf.mtype = 1;
 	buf.intData = 0;
@@ -76,20 +63,15 @@ int main(int argc, char** argv) {
 		while(!msgReceived) {
 			if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
 				msgReceived = 1;
-				printf("message received from parent\n");
 			}
 		}
 
-		//TODO: Take action using buf.intData from parent
 		int action = decideAction();
-		printf("Action: %d\n", action);
 		if(action == 2) {
 			buf.intData = decideTimeUsed(buf);
-			printf("timeused: %d\n", buf.intData);
 		}
 		else if(action == 3) {
 			buf.intData = -decideTimeUsed(buf);
-			printf("timeused: %d\n", buf.intData);
 			terminate = 1;
 		}
 
@@ -99,8 +81,6 @@ int main(int argc, char** argv) {
 			printf("msgsnd to parent failed.\n");
 			exit(1);
 		}
-		else
-			printf("message sent to parent\n");
 	}
 
 	printf("Child terminating\n");
