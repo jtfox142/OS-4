@@ -395,9 +395,12 @@ pid_t calculatePriorities(struct queue *ready) {
 	count = 0;
 	//i know that this iterates more times than it has to. sorry.
 	while(count < MAX_CHILDREN - 1) {
+		printf("here1\n");
 		currentPid = dequeue(ready);
+		printf("here2\n");
 		currentEntry = findTableIndex(currentPid);
 		currentPriority = priorityArithmetic(currentEntry);
+		printf("here3\n");
 		enqueue(currentPid, ready);
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
