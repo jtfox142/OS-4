@@ -239,7 +239,6 @@ void launchChild(int maxSimulChildren, pid_t *ready) {
 		else if(newChild == 0) {
 			char fakeArg[sizeof(int)];
 			snprintf(fakeArg, sizeof(int), "%d", 1);
-			printf("child pid: %d\n", getpid());
 			execlp("./worker", fakeArg, NULL);
        		exit(1);
        		}
