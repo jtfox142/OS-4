@@ -41,6 +41,9 @@ struct queue {
 // GLOBAL VARIABLES
 //For storing each child's PCB. Memory is allocated in main
 struct PCB *processTable;
+//Resources for the scheduler
+struct queue *readyQueue;
+struct queue *blockedQueue;
 //Self descriptive. Easier than passing it to functions that don't actually need it, just so that it can get 
 //passed into the one that does.
 int simulatedClock[2];
@@ -94,6 +97,9 @@ int main(int argc, char** argv) {
     simulatedClock[0] = 0;
     simulatedClock[1] = 0;
 
+	readyQueue = (struct queue*)malloc(sizeof(struct queue));
+	blockedQueue = (struct queue*)malloc(sizeof(struct queue));
+
 	//message queue setup
 	key_t key;
 	system("touch msgq.txt");
@@ -109,10 +115,6 @@ int main(int argc, char** argv) {
 		perror("msgget in parent");
 		exit(1);
 	}
-
-	//Resources for the scheduler
-	struct queue *readyQueue;
-	struct queue *blockedQueue;
 
 	//user input variables
 	int option;
@@ -425,9 +427,13 @@ void terminateProgram(int signum) {
 			kill(processTable[count].pid, signum);
 	}
 
-	//Frees memory allocated for processTable
+	//Frees allocated memory
 	free(processTable);
 	processTable = NULL;
+	free(readyQueue);
+	readyQueue = NULL;
+	free(blockedQueue);
+	blockedQueue = NULL;
 
 	// get rid of message queue
 	if (msgctl(msqid, IPC_RMID, NULL) == -1) {
