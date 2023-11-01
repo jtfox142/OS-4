@@ -59,11 +59,12 @@ void processEnded(int pidNumber);
 void outputTable();
 //OSS functions
 void incrementClock(int timePassed);
-void launchChild(int maxSimulChildren);
+void launchChild(int maxSimulChildren, struct queue *ready);
 //TODO: int calculatePriority();
 void scheduleProcess(pid_t process, msgBuffer buf);
 void receiveMessage(pid_t process, msgBuffer buf, struct queue *blockedQueue);
 void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue);
+void checkBlockedQueue(struct queue *blocked, struct queue *ready);
 //Program end functions
 void terminateProgram(int signum);
 void sighandler(int signum);
@@ -72,7 +73,8 @@ void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
 //Queue functions
 void enqueue(pid_t element, struct queue *queue);
-pid_t dequeue(struct queue *queue);
+void dequeue(struct queue *queue);
+pid_t front(struct queue *queue);
 //Helper functions
 int checkChildren(int maxSimulChildren);
 int stillChildrenToLaunch();
@@ -153,22 +155,20 @@ int main(int argc, char** argv) {
 	//childrenInSystem checks if any PCBs remain occupied
 	while(stillChildrenToLaunch() || childrenInSystem()) {
 		//calls another function to check if runningChildren < simul, and if so, launches a new child.
-		launchChild(simul);
+		launchChild(simul, readyQueue);
 
-		//TODO: checks to see if a blocked process should be changed to ready
-		//checkBlockedQueue();
+		//checks to see if a blocked process should be changed to ready
+		checkBlockedQueue(blockedQueue, readyQueue);
 
 		//TODO: calculates priorities of ready processes (look in notes). returns the highest priority pid
-		//pid_t priority;
-		//priority = calculatePriorities();
+		pid_t priority;
+		priority = calculatePriorities();
 
-		pid_t priority = processTable[0].pid;
-		printf("first pid: %d\n", priority);
 		//schedules the process with the highest priority
 		scheduleProcess(priority, buf);	
 		printf("message sent from parent.\n");
 
-		//TODO: Waits for a message back AND UPDATES APPROPRIATE STRUCTURES
+		//Waits for a message back and updates appropriate structures
 		receiveMessage(priority, buf, blockedQueue);
 
 		//TODO: Outputs the process table to a log file and the screen every half second, if the log file isn't full
@@ -227,7 +227,7 @@ void initializePCB(pid_t pid) {
 }
 
 //Checks to see if another child can be launched. If so, it launches a new child.
-void launchChild(int maxSimulChildren) {
+void launchChild(int maxSimulChildren, struct queue *ready) {
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
 		pid_t newChild;
 		newChild = fork();
@@ -243,6 +243,7 @@ void launchChild(int maxSimulChildren) {
        		}
 		else {
 			initializePCB(newChild);
+			enqueue(newChild, ready);
 		}
 	}
 }
@@ -335,7 +336,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue) {
 		enqueue(processTable[entry].pid, blockedQueue);
 		calculateEventTime(process, entry);
 	}
-	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + rcvbuf.intData;
+	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
 		processTable[entry].serviceTimeSeconds = processTable[entry].serviceTimeSeconds + 1;
 		processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano - ONE_SECOND;
@@ -358,6 +359,19 @@ void incrementClock(int timePassed) {
 	if(simulatedClock[1] >= ONE_SECOND) {
 		simulatedClock[1] -= ONE_SECOND;
 		simulatedClock[0] += 1;
+	}
+}
+
+//checks to see if a blocked process should be changed to ready
+void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
+	pid_t pid;
+	pid = front(blocked);
+
+	int entry;
+	entry = findTableIndex(pid);
+	if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano >= simulatedClock[1]) {
+		dequeue(blocked);
+		enqueue(pid, ready);
 	}
 }
 
@@ -401,7 +415,6 @@ void processEnded(int pidNumber) {
 	}
 }
 
-//TODO: Increment time by a small amount every time OSS updates a data structure
 void outputTable(FILE *file) {
 	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
 	int i;
@@ -439,12 +452,18 @@ void enqueue(pid_t element, struct queue *queue) {
     queue->entries[queue->rear] = element;  
 }  
   
-pid_t dequeue(struct queue *queue) {  
+void dequeue(struct queue *queue) {  
     if (queue->front == -1 || queue->front > queue->rear) {  
         printf("Queue is empty");  
         return -1;  
     }  
     pid_t element = queue->entries[queue->front];  
-    queue->front++;  
-    return element;  
+    queue->front++;    
 }  
+
+pid_t front(struct queue *queue)
+{
+    if (isEmpty(queue))
+        return -1;
+    return queue->entries[queue->front];
+}
