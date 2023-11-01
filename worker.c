@@ -13,6 +13,24 @@ typedef struct msgbuffer {
 	int intData;
 } msgbuffer;
 
+int RNG(int max, int min) {
+	srand(getpid());
+	return ((rand() % (max - min + 1) + 1));
+}
+
+int decideAction() {
+	int choice = RNG(100, 0);
+	if(choice < 95)
+		return 1;
+	if(choice < 98)
+		return 2;
+	return 3;
+}
+
+int decideTimeUsed(msgbuffer buf) {
+	return RNG(buf.intData, 1);
+}
+
 int main(int argc, char** argv) {
 
 	/*
@@ -59,10 +77,14 @@ int main(int argc, char** argv) {
 	}
 
 	//TODO: Take action using buf.intData from parent
+	int action = decideAction();
+	if(action == 2)
+		buf.intData = decideTimeUsed(buf);
+	else if(action == 3)
+		buf.intData = -decideTimeUsed(buf);
 
 	//Send message back to parent
 	buf.mtype = parentPid;
-	buf.intData = -1; //TODO: fill in return value to parent
 	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);

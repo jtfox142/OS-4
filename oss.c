@@ -369,6 +369,8 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	for(int count = 0; count < processTableSize; count++) {
 		if(blockedQueue[count] != -1) {
 			entry = findTableIndex(blockedQueue[count]);
+			if(!processTable[entry].occupied)
+				continue;
 			if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
