@@ -379,7 +379,7 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 		dequeue(blocked);
 		enqueue(pid, ready);
 	}
-	printf("exiting checkBlockedQueue\n")
+	printf("exiting checkBlockedQueue\n");
 }
 
 pid_t calculatePriorities(struct queue *ready) {
