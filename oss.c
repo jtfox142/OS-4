@@ -92,10 +92,8 @@ int main(int argc, char** argv) {
     simulatedClock[1] = 0;
 
 	readyQueue = (int*)malloc(processTableSize * sizeof(int));
-	printf("Im trying\n");
-	initializeQueue(readyQueue);
 	blockedQueue = (int*)malloc(processTableSize * sizeof(int));
-	initializeQueue(blockedQueue);
+	
 
 	//message queue setup
 	key_t key;
@@ -141,6 +139,8 @@ int main(int argc, char** argv) {
 	
 	//sets the global var equal to the user arg
 	processTableSize = proc;
+	initializeQueue(readyQueue);
+	initializeQueue(blockedQueue);
 
 	//create a mesasge buffer for each child to be created
 	msgBuffer buf;
