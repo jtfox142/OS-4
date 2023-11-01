@@ -151,7 +151,8 @@ int main(int argc, char** argv) {
 	//sets all pids in the process table to 0
 	initializeProcessTable();
 
-	int *outputTimer;
+	int outputTimerStart;
+	int *outputTimer = &outputTimerStart;
 	*outputTimer = 0;
 
 	//stillChildrenToLaunch checks if we have initialized the final PCB yet. 
@@ -457,11 +458,11 @@ void processEnded(int pidNumber) {
 }
 
 void outputTable(FILE *file) {
-	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\n");
+	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n");
 	int i;
 	for(i = 0; i < processTableSize; i++) {
-		printf("%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano);
-		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\n%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano);
+		printf("%d\t%d\t%d\t%d\t%d%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeSeconds, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
+		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n\n%d\t%d\t%d\t%d\t%d%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeSeconds, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
 	}
 }
 
