@@ -243,10 +243,11 @@ void launchChild(int maxSimulChildren, struct queue *ready) {
        		}
 		else {
 			initializePCB(newChild);
+			printf("boop1\n");
 			enqueue(newChild, ready);
 		}
 	}
-	printf("boop1\n");
+	printf("boop1.5\n");
 }
 
 //Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
