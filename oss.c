@@ -53,7 +53,7 @@ void help();
 void initializeProcessTable();
 void initializePCB(pid_t pid);
 void processEnded(int pidNumber);
-void outputTable();
+void outputTable(FILE *fptr);
 //OSS functions
 void incrementClock(int timePassed);
 void launchChild(int maxSimulChildren, pid_t *ready);
@@ -79,6 +79,7 @@ int childrenInSystem();
 int findTableIndex(pid_t pid);
 void calculateEventTime(pid_t process, int entry);
 double priorityArithmetic(int currentEntry);
+void checkTime(int *outputTimer, FILE *fptr);
 
 
 int main(int argc, char** argv) {
@@ -150,6 +151,9 @@ int main(int argc, char** argv) {
 	//sets all pids in the process table to 0
 	initializeProcessTable();
 
+	int *outputTimer;
+	*outputTimer = 0;
+
 	//stillChildrenToLaunch checks if we have initialized the final PCB yet. 
 	//childrenInSystem checks if any PCBs remain occupied
 	while(stillChildrenToLaunch() || childrenInSystem()) {
@@ -165,14 +169,12 @@ int main(int argc, char** argv) {
 
 		//schedules the process with the highest priority
 		scheduleProcess(priority, buf);	
-		printf("message sent from parent.\n");
 
 		//Waits for a message back and updates appropriate structures
 		receiveMessage(priority, buf, blockedQueue);
 
-		//TODO: Outputs the process table to a log file and the screen every half second, if the log file isn't full
-		//if(checkTime() && checkOutput()) 
-			//outputTable(fptr);
+		// Outputs the process table to a log file and the screen every half second,
+		checkTime(outputTimer, fptr);
 	}
 
 	pid_t wpid;
@@ -183,6 +185,14 @@ int main(int argc, char** argv) {
 }
 
 // FUNCTION DEFINITIONS
+
+void checkTime(int *outputTimer, FILE *fptr) {
+	if(abs(simulatedClock[1] - *outputTimer) >= ONE_SECOND / 2){
+			*outputTimer = simulatedClock[1];
+			printf("\nOSS PID:%d SysClockS:%d SysClockNano:%d\n", getpid(), simulatedClock[0], simulatedClock[1]); 
+			outputTable(fptr);
+		}
+}
 
 //TODO: Update help message and README.md
 void help() {
@@ -267,25 +277,19 @@ int checkChildren(int maxSimulChildren) {
 
 //If the maximum number of children has not been reached, return true. Otherwise return false
 int stillChildrenToLaunch() {
-	printf("Checking for children to launch\n");
 	if(processTable[processTableSize - 1].pid == 0) {
-		printf("Children to launch is true\n");
 		return 1;
 	}
-	printf("Children to launch is false\n");
 	return 0;
 }
 
 //Returns 1 if any children are running. Returns 0 otherwise
 int childrenInSystem() {
-	printf("Checking for children in system\n");
 	for(int count = 0; count < processTableSize; count++) {
 		if(processTable[count].occupied) {
-			printf("children in system is true: pcb %d is %d\n", count, processTable[count].occupied);
 			return 1;
 		}
 	}
-	printf("Children in system is false\n");
 	return 0;
 }
 
@@ -315,19 +319,15 @@ void scheduleProcess(pid_t process, msgBuffer buf) {
 //Updates process table accordingly
 void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 	msgBuffer rcvbuf;
-	printf("waiting on message from child\n");
 	if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
 			perror("msgrcv from child failed\n");
 			exit(1);
 	}
-
-	printf("message received from child: %d\n", rcvbuf.intData);
 	updateTable(process, rcvbuf, blockedQueue);
 }
 
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
-	printf("Trying to update table\n");
 	int entry = findTableIndex(process);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
@@ -397,7 +397,6 @@ pid_t calculatePriorities(pid_t *ready) {
 
 	for(int count = 0; count < processTableSize; count++) {
 		currentPid = readyQueue[count];
-		printf("currentPid: %d\n", currentPid);
 		if(currentPid = -1)
 			currentPriority = -1;
 		else
@@ -407,7 +406,6 @@ pid_t calculatePriorities(pid_t *ready) {
 			priorityPid = currentPid;
 		}
 	}
-	printf("priorityPid: %d\n", priorityPid);
 
 	return priorityPid;
 }
