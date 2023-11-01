@@ -482,14 +482,18 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 //I yanked some generic queue code from https://www.javatpoint.com/queue-in-c
 //and then modified it to fit my needs
 void enqueue(pid_t element, struct queue *queue) {  
+	printf("in enqueue\n");
     if(queue->rear == processTableSize - 1) {  
         printf("Queue is full");  
         return;  
     }  
+	printf("top of second if\n");
     if(queue->front == -1) {  
         queue->front = 0;  
     }  
+	printf("bottom of second if\n");
     queue->rear++;  
+	printf("after rear increments\n");
     queue->entries[queue->rear] = element;  
 }  
   
