@@ -67,35 +67,40 @@ int main(int argc, char** argv) {
 	pid_t parentPid = getppid();
 	pid_t myPid = getpid();
 
-	int msgReceived; //set to 1 when message comes in from parent
-	msgReceived = 0;
-	while(!msgReceived) {
-		if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
-			msgReceived = 1;
-			printf("message received from parent\n");
+	int terminate = 0;
+
+	while(!terminate) {
+		int msgReceived; //set to 1 when message comes in from parent
+		msgReceived = 0;
+		while(!msgReceived) {
+			if(msgrcv(msqid, &buf, sizeof(msgbuffer), myPid, 0) >= 0) {
+				msgReceived = 1;
+				printf("message received from parent\n");
+			}
 		}
-	}
 
-	//TODO: Take action using buf.intData from parent
-	int action = decideAction();
-	printf("Action: %d\n", action);
-	if(action == 2) {
-		buf.intData = decideTimeUsed(buf);
-		printf("timeused: %d\n", buf.intData);
-	}
-	else if(action == 3) {
-		buf.intData = -decideTimeUsed(buf);
-		printf("timeused: %d\n", buf.intData);
-	}
+		//TODO: Take action using buf.intData from parent
+		int action = decideAction();
+		printf("Action: %d\n", action);
+		if(action == 2) {
+			buf.intData = decideTimeUsed(buf);
+			printf("timeused: %d\n", buf.intData);
+		}
+		else if(action == 3) {
+			buf.intData = -decideTimeUsed(buf);
+			printf("timeused: %d\n", buf.intData);
+			terminate = 1;
+		}
 
-	//Send message back to parent
-	buf.mtype = parentPid;
-	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
-		printf("msgsnd to parent failed.\n");
-		exit(1);
+		//Send message back to parent
+		buf.mtype = parentPid;
+		if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
+			printf("msgsnd to parent failed.\n");
+			exit(1);
+		}
+		else
+			printf("message sent to parent\n");
 	}
-	else
-		printf("message sent to parent\n");
 
 	printf("Child terminating\n");
 	return EXIT_SUCCESS;
