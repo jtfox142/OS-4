@@ -33,7 +33,7 @@ struct PCB {
 };
 
 struct queue {
-	pid_t front;
+	int front;
 	int rear;
 	pid_t entries[MAX_CHILDREN];
 };
@@ -493,7 +493,7 @@ void enqueue(pid_t element, struct queue *queue) {
         queue->front = 0;  
     }  
 	printf("bottom of second if\n");
-    queue->rear = queue->rear + 1;  
+    (*queue).rear = queue->rear + 1;  
 	printf("after rear increments\n");
     queue->entries[queue->rear] = element;  
 }  
