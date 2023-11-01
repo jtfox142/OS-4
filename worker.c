@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
 
 	//Send message back to parent
 	buf.mtype = parentPid;
-	buf.intData = 10; //TODO: fill in return value to parent
+	buf.intData = -1; //TODO: fill in return value to parent
 	if(msgsnd(msqid, &buf, sizeof(msgbuffer) - sizeof(long), 0) == -1) {
 		printf("msgsnd to parent failed.\n");
 		exit(1);

@@ -163,8 +163,6 @@ int main(int argc, char** argv) {
 		pid_t priority;
 		priority = calculatePriorities(readyQueue);
 
-		printf("priority: %d\n", priority);
-
 		//schedules the process with the highest priority
 		scheduleProcess(priority, buf);	
 		printf("message sent from parent.\n");
@@ -367,8 +365,6 @@ void incrementClock(int timePassed) {
 
 //checks to see if a blocked process should be changed to ready
 void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
-	printf("entering CheckBlockedQueue\n");
-
 	int entry;
 	for(int count = 0; count < processTableSize; count++) {
 		if(blockedQueue[count] != -1) {
@@ -385,12 +381,9 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			}
 		}
 	}
-
-	printf("exiting checkBlockedQueue\n");
 }
 
 pid_t calculatePriorities(pid_t *ready) {
-	printf("am i even called\n");
 	pid_t priorityPid;
 	priorityPid = readyQueue[0];
 	double highestPriority;
