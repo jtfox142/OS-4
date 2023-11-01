@@ -405,7 +405,7 @@ pid_t calculatePriorities(pid_t *ready) {
 		currentPid = readyQueue[count];
 		printf("currentPid: %d\n", currentPid);
 		currentPriority = priorityArithmetic(findTableIndex(currentPid));
-		if(currentPriority > highestPriority) {
+		if(currentPriority >= highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
 		}
