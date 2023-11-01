@@ -14,7 +14,7 @@ typedef struct msgbuffer {
 } msgbuffer;
 
 int RNG(int max, int min) {
-	srand(time(null));
+	srand(time(NULL));
 	return ((rand() % (max - min + 1) + 1));
 }
 
