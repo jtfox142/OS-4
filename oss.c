@@ -92,6 +92,7 @@ int main(int argc, char** argv) {
     simulatedClock[1] = 0;
 
 	readyQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
+	printf("Im trying\n");
 	initializeQueue(readyQueue);
 	blockedQueue = (pid_t*)malloc(processTableSize * sizeof(pid_t));
 	initializeQueue(blockedQueue);
@@ -503,6 +504,7 @@ int removeItemFromQueue(pid_t *queue, pid_t itemToRemove) {
 }
 
 void initializeQueue(pid_t *queue) {
+	printf("did i do the thing\n");
 	for(int count = 0; count < processTableSize; count++) {
 		queue[count] = -1;
 		printf("queue count at initialization: %d\n", queue[count]);
