@@ -71,7 +71,7 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 //Queue functions
 int addItemToQueue(pid_t *queue, pid_t itemToAdd);
 int removeItemFromQueue(pid_t *queue, pid_t itemToRemove);
-void initializeQueue(pid_t *queue);
+int initializeQueue(pid_t *queue);
 //Helper functions
 int checkChildren(int maxSimulChildren);
 int stillChildrenToLaunch();
@@ -503,7 +503,7 @@ int removeItemFromQueue(pid_t *queue, pid_t itemToRemove) {
 	return 0;
 }
 
-void initializeQueue(pid_t *queue) {
+int initializeQueue(pid_t *queue) {
 	printf("did i do the thing\n");
 	queue[0] = -1;
 	printf("queue[0]: %d\n", queue[0]);
@@ -512,4 +512,5 @@ void initializeQueue(pid_t *queue) {
 		queue[count] = -1;
 		printf("queue count at initialization: %d\n", queue[count]);
 	}
+	return 1;
 }
