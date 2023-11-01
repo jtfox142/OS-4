@@ -402,12 +402,14 @@ pid_t calculatePriorities(pid_t *ready) {
 		if(readyQueue[count] == -1)
 			continue;
 		currentPid = readyQueue[count];
+		printf("currentPid: %d\n", currentPid);
 		currentPriority = priorityArithmetic(findTableIndex(currentPid));
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
 		}
 	}
+	printf("priorityPid: %d\n", priorityPid);
 
 	return priorityPid;
 }
