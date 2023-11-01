@@ -188,7 +188,6 @@ int main(int argc, char** argv) {
 // FUNCTION DEFINITIONS
 
 void checkTime(int *outputTimer, FILE *fptr) {
-	printf("simulatedClock:%d\n",simulatedClock[1]);
 	if(abs(simulatedClock[1] - *outputTimer) >= 500000000){
 			*outputTimer = simulatedClock[1];
 			printf("\nOSS PID:%d SysClockS:%d SysClockNano:%d\n", getpid(), simulatedClock[0], simulatedClock[1]); 
