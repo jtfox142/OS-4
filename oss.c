@@ -36,8 +36,8 @@ struct PCB {
 //For storing each child's PCB. Memory is allocated in main
 struct PCB *processTable;
 //Resources for the scheduler
-int *readyQueue;
-int *blockedQueue;
+pid_t *readyQueue;
+pid_t *blockedQueue;
 //Self descriptive. Easier than passing it to functions that don't actually need it, just so that it can get 
 //passed into the one that does.
 int simulatedClock[2];
@@ -71,7 +71,7 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 //Queue functions
 int addItemToQueue(pid_t *queue, pid_t itemToAdd);
 int removeItemFromQueue(pid_t *queue, pid_t itemToRemove);
-int initializeQueue(pid_t *queue);
+void initializeQueue(pid_t *queue);
 //Helper functions
 int checkChildren(int maxSimulChildren);
 int stillChildrenToLaunch();
@@ -91,8 +91,8 @@ int main(int argc, char** argv) {
     simulatedClock[0] = 0;
     simulatedClock[1] = 0;
 
-	readyQueue = (int*)malloc(processTableSize * sizeof(int));
-	blockedQueue = (int*)malloc(processTableSize * sizeof(int));
+	readyQueue = (pid_t*)malloc(processTableSize * sizeof(int));
+	blockedQueue = (pid_t*)malloc(processTableSize * sizeof(int));
 	
 
 	//message queue setup
@@ -157,11 +157,13 @@ int main(int argc, char** argv) {
 		launchChild(simul, readyQueue);
 
 		//checks to see if a blocked process should be changed to ready
-		//checkBlockedQueue(blockedQueue, readyQueue);
+		checkBlockedQueue(blockedQueue, readyQueue);
 
 		//calculates priorities of ready processes (look in notes). returns the highest priority pid
 		pid_t priority;
 		priority = calculatePriorities(readyQueue);
+
+		printf("priority: %d\n", priority);
 
 		//schedules the process with the highest priority
 		scheduleProcess(priority, buf);	
@@ -237,6 +239,7 @@ void launchChild(int maxSimulChildren, pid_t *ready) {
 		else if(newChild == 0) {
 			char fakeArg[sizeof(int)];
 			snprintf(fakeArg, sizeof(int), "%d", 1);
+			printf("child pid: %d\n", getPid());
 			execlp("./worker", fakeArg, NULL);
        		exit(1);
        		}
@@ -248,7 +251,6 @@ void launchChild(int maxSimulChildren, pid_t *ready) {
 			}
 		}
 	}
-	printf("leaving launchChild\n");
 }
 
 //Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
@@ -328,6 +330,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
+	printf("Trying to update table\n");
 	int entry = findTableIndex(process);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
@@ -503,15 +506,9 @@ int removeItemFromQueue(pid_t *queue, pid_t itemToRemove) {
 	return 0;
 }
 
-int initializeQueue(int *queue) {
-	printf("did i do the thing\n");
-	queue[0] = -1;
-	printf("queue[0]: %d\n", queue[0]);
+void initializeQueue(pid_t *queue) {
 	int count;
 	for(count = 0; count < processTableSize; count++) {
 		queue[count] = -1;
-		printf("queue count at initialization: %d\n", queue[count]);
 	}
-	printf("queue[1]: %d\n", queue[1]);
-	return 1;
 }
