@@ -60,7 +60,7 @@ void outputTable();
 //OSS functions
 void incrementClock(int timePassed);
 void launchChild(int maxSimulChildren, struct queue *ready);
-int calculatePriority(struct queue *ready);
+int calculatePriorities(struct queue *ready);
 void scheduleProcess(pid_t process, msgBuffer buf);
 void receiveMessage(pid_t process, msgBuffer buf, struct queue *blockedQueue);
 void updateTable(pid_t process, msgBuffer rcvbuf, struct queue *blockedQueue);
@@ -73,7 +73,7 @@ void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
 void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
 //Queue functions
 void enqueue(pid_t element, struct queue *queue);
-void dequeue(struct queue *queue);
+pid_t dequeue(struct queue *queue);
 pid_t front(struct queue *queue);
 //Helper functions
 int checkChildren(int maxSimulChildren);
@@ -159,9 +159,9 @@ int main(int argc, char** argv) {
 		//checks to see if a blocked process should be changed to ready
 		checkBlockedQueue(blockedQueue, readyQueue);
 
-		//TODO: calculates priorities of ready processes (look in notes). returns the highest priority pid
+		//calculates priorities of ready processes (look in notes). returns the highest priority pid
 		pid_t priority;
-		priority = calculatePriorities();
+		priority = calculatePriorities(readyQueue);
 
 		//schedules the process with the highest priority
 		scheduleProcess(priority, buf);	
@@ -374,6 +374,45 @@ void checkBlockedQueue(struct queue *blocked, struct queue *ready) {
 	}
 }
 
+pid_t calculatePriorities(struct queue *ready) {
+	pid_t priorityPid;
+	int highestPriority;
+	pid_t currentPid;
+	int currentPriority;
+	int currentEntry;
+
+	priorityPid = dequeue(ready);
+	//Ready queue should never be empty
+	if(currentPid == -1) {
+		printf("OSS: Ready queue is empty.\n");
+		return -1;
+	}
+	currentEntry = findTableIndex(currentPid);
+	highestPriority = priorityArithmetic(currentEntry);
+	enqueue(currentPid, ready);
+	
+	int count;
+	count = 1;
+	while(count < MAX_CHILDREN - 1) {
+		currentPid = dequeue(ready);
+		currentEntry = findTableIndex(currentPid);
+		currentPriority = priorityArithmetic(currentEntry);
+		enqueue(currentPid, ready);
+		if(currentPriority > highestPriority) {
+			highestPriority = currentPriority;
+			priorityPid = currentPid;
+		}
+	}
+
+	return priorityPid;
+}
+
+int priorityArithmetic(int currentEntry) {
+	int serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
+	int timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
+	return (serviceTime / timeInSystem); 
+}
+
 //TODO: close the file
 void terminateProgram(int signum) {
 	//Kills any remaining active child processes
@@ -451,13 +490,14 @@ void enqueue(pid_t element, struct queue *queue) {
     queue->entries[queue->rear] = element;  
 }  
   
-void dequeue(struct queue *queue) {  
+pid_t dequeue(struct queue *queue) {  
     if(queue->front == -1 || queue->front > queue->rear) {  
         printf("Queue is empty");  
         return -1;  
     }  
     pid_t element = queue->entries[queue->front];  
-    queue->front++;    
+    queue->front++;  
+	return element;  
 }  
 
 pid_t front(struct queue *queue)
@@ -465,11 +505,4 @@ pid_t front(struct queue *queue)
     if(isEmpty(queue))
         return -1;
     return queue->entries[queue->front];
-}
-
-pid_t all(struct queue *queue)
-{
-	if(isEmpty(queue))
-        return -1;
-	
 }
