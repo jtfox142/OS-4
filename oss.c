@@ -330,6 +330,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	int entry = findTableIndex(process);
+	printf("rcvbuf: %d\n", rcvbuf.intData);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
 	}
@@ -461,8 +462,8 @@ void outputTable(FILE *file) {
 	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n");
 	int i;
 	for(i = 0; i < processTableSize; i++) {
-		printf("%d\t%d\t%d\t%d\t%d\t%d\t\t  %d\t\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeSeconds, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
-		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n\n%d\t%d\t%d\t%d\t%d%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeSeconds, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
+		printf("%d\t%d\t%d\t%d\t%d\t%d\t\t  %d\t\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
+		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n\n%d\t%d\t%d\t%d\t%d%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
 	}
 }
 
