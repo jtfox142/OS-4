@@ -336,6 +336,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	}
 	else if(rcvbuf.intData < SCHEDULED_TIME) {
 		processTable[entry].blocked = 1;
+		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
 	}
@@ -366,14 +367,25 @@ void incrementClock(int timePassed) {
 }
 
 //checks to see if a blocked process should be changed to ready
-//TODO: overflow problem is happening here. It is not properly clearing the ready queue
-//What needs to happen: 
-//If a process exists in the blocked queue, check to see if it is 
+//TODO UPDATE: I never remove from the ready queue, only from the blocked queue. Fix that, everything else works
+
+//What needs to happen in this section: 
+//If a process exists in the blocked queue, check to see if it can leave.
+//If so, remove from blocked queue and add to ready queue.
+
+//What is currently happening in this section:
+/*
+Check to see if there is anything in the blocked queue.
+If so, check to see if that item's PCB is occupied (but then nothing happens either way). 
+	I guess could use for error checking? If it never ran ie not occupied, then set that blocked queue entry back to -1 or w/e
+If that item is ready, remove from blocked and add to ready.
+*/
 void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	int entry;
 	for(int count = 0; count < processTableSize; count++) {
 		if(blockedQueue[count] != -1) {
 			entry = findTableIndex(blockedQueue[count]);
+			//TODO: do i need this? did i mean to add an else?
 			if(!processTable[entry].occupied)
 				continue;
 			if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
@@ -383,7 +395,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 
 				if(!addItemToQueue(ready, processTable[entry].pid)) {
 					perror("ready queue overflow\n");
-					//exit(1);
+					exit(1);
 				}
 			}
 		}
