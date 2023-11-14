@@ -330,7 +330,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	int entry = findTableIndex(process);
-	printf("rcvbuf: %d\n", rcvbuf.intData);
+	//printf("rcvbuf: %d\n", rcvbuf.intData);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
 	}
