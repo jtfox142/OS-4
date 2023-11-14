@@ -366,6 +366,9 @@ void incrementClock(int timePassed) {
 }
 
 //checks to see if a blocked process should be changed to ready
+//TODO: overflow problem is happening here. It is not properly clearing the ready queue
+//What needs to happen: 
+//If a process exists in the blocked queue, check to see if it is 
 void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	int entry;
 	for(int count = 0; count < processTableSize; count++) {
@@ -380,7 +383,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 
 				if(!addItemToQueue(ready, processTable[entry].pid)) {
 					perror("ready queue overflow\n");
-					exit(1);
+					//exit(1);
 				}
 			}
 		}
