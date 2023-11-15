@@ -410,7 +410,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 //TODO not calculating priorities right
 pid_t calculatePriorities(pid_t *ready) {
 	pid_t priorityPid;
-	priorityPid = -1;
+	priorityPid = ready[0];
 	double highestPriority;
 	highestPriority = 0;
 	pid_t currentPid;
