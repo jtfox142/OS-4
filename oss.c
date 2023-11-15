@@ -397,7 +397,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 				processTable[entry].blocked = 0;
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
-					terminateProgram(6);
+					exit(1);
 				}
 
 				if(!addItemToQueue(ready, processTable[entry].pid)) {
@@ -407,6 +407,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			}
 		}
 	}
+	printf("not this loop\n");
 }
 
 //TODO not calculating priorities right
