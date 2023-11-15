@@ -426,8 +426,10 @@ pid_t calculatePriorities(pid_t *ready) {
 		printf("currentPid: %d\n", currentPid);
 		if(currentPid = -1)
 			currentPriority = -1;
-		else
+		else {
+			printf("findTableIndex(currentPid): %d\n", findTableIndex(currentPid));
 			currentPriority = priorityArithmetic(findTableIndex(currentPid));
+		}
 		printf("currentPriority: %f\n", currentPriority);
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
