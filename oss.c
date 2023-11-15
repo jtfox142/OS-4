@@ -514,7 +514,6 @@ void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, m
 int addItemToQueue(pid_t *queue, pid_t itemToAdd) {
 	for(int count = 0; count < processTableSize; count++) {
 		if(queue[count] == -1) {
-			printf("PID %d added to ready queue\n", itemToAdd);
 			queue[count] = itemToAdd;
 			return 1;
 		}
