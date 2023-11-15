@@ -344,6 +344,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 		processTable[entry].occupied = 0;
 	}
 	else if(rcvbuf.intData < SCHEDULED_TIME) {
+		printf("HELP IM BLOCKED\n");
 		processTable[entry].blocked = 1;
 		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
