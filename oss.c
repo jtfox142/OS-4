@@ -392,7 +392,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			//TODO: do i need this? did i mean to add an else?
 			if(!processTable[entry].occupied)
 				continue;
-			if(processTable[entry].eventWaitSeconds <= simulatedClock[0] && processTable[entry].eventWaitNano < simulatedClock[1]) {
+			if(simulatedClock[0] >= processTable[entry].eventWaitSeconds && simulatedClock[1] > processTable[entry].eventWaitNano) {
 				processTable[entry].blocked = 0;
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
