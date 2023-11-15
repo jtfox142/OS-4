@@ -334,7 +334,7 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 			exit(1);
 	}
 	incrementClock(abs(rcvbuf.intData));
-	updateTable(process, rcvbuf, blockedQueue);
+	updateTable(process, rcvbuf);
 }
 
 //Updates the process control table
