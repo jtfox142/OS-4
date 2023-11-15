@@ -310,8 +310,10 @@ int findTableIndex(pid_t pid) {
 int scheduleProcess(pid_t process, msgBuffer buf) {
 	incrementClock(STANDARD_CLOCK_INCREMENT);
 
-	if(process == -1)
+	if(process == -1) {
+		printf("No processes in the ready queue. Waiting.\n");
 		return 0;
+	}
 
 	buf.mtype = process;
 	buf.intData = SCHEDULED_TIME;
