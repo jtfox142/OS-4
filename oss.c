@@ -178,7 +178,6 @@ int main(int argc, char** argv) {
 
 		// Outputs the process table to a log file and the screen every half second,
 		checkTime(outputTimer, fptr);
-		break;
 	}
 
 	pid_t wpid;
@@ -423,14 +422,11 @@ pid_t calculatePriorities(pid_t *ready) {
 
 	for(int count = 0; count < processTableSize; count++) {
 		currentPid = ready[count];
-		printf("currentPid: %d\n", currentPid);
 		if(currentPid == -1)
 			currentPriority = -1;
 		else {
-			printf("findTableIndex(currentPid): %d\n", findTableIndex(currentPid));
 			currentPriority = priorityArithmetic(findTableIndex(currentPid));
 		}
-		printf("currentPriority: %f\n", currentPriority);
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
@@ -442,10 +438,9 @@ pid_t calculatePriorities(pid_t *ready) {
 
 double priorityArithmetic(int currentEntry) {
 	double serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
-	printf("serviceTime: %f\n", serviceTime);
 	double timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
 	//If a process has had no time in the system, it should have top priority
-	if(serviceTime <= 10500)
+	if(serviceTime == 0)
 		return 1;
 	return (serviceTime / timeInSystem); 
 }
