@@ -393,8 +393,8 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			if(!processTable[entry].occupied)
 				continue;
 			if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
-				printf("Removing PID %d from blocked queue.\n", processTable[entry].occupied);
-				processTable[entry].blocked == 0;
+				printf("Removing PID %d from blocked queue.\n", processTable[entry].pid);
+				processTable[entry].blocked = 0;
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
 					terminateProgram(6);
