@@ -56,12 +56,12 @@ void processEnded(int pidNumber);
 void outputTable(FILE *fptr);
 //OSS functions
 void incrementClock(int timePassed);
-void launchChild(int maxSimulChildren, pid_t *ready);
-int calculatePriorities(pid_t *ready);
+void launchChild(int maxSimulChildren);
+int calculatePriorities();
 int scheduleProcess(pid_t process, msgBuffer buf);
-void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue);
-void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue);
-void checkBlockedQueue(pid_t *blocked, pid_t *ready);
+void receiveMessage(pid_t process, msgBuffer buf);
+void updateTable(pid_t process, msgBuffer rcvbuf);
+void checkBlockedQueue();
 //Program end functions
 void terminateProgram(int signum);
 void sighandler(int signum);
@@ -159,14 +159,14 @@ int main(int argc, char** argv) {
 	//childrenInSystem checks if any PCBs remain occupied
 	while(stillChildrenToLaunch() || childrenInSystem()) {
 		//calls another function to check if runningChildren < simul, and if so, launches a new child.
-		launchChild(simul, readyQueue);
+		launchChild(simul);
 
 		//checks to see if a blocked process should be changed to ready
-		checkBlockedQueue(blockedQueue, readyQueue);
+		checkBlockedQueue();
 
 		//calculates priorities of ready processes (look in notes). returns the highest priority pid
 		pid_t priority;
-		priority = calculatePriorities(readyQueue);
+		priority = calculatePriorities();
 
 		//schedules the process with the highest priority. If no processes are launched, returns 0
 		int msgSent;
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
 
 		//Waits for a message back and updates appropriate structures
 		if(msgSent) //prevents a blocked wait
-			receiveMessage(priority, buf, blockedQueue);
+			receiveMessage(priority, buf);
 
 		// Outputs the process table to a log file and the screen every half second,
 		checkTime(outputTimer, fptr);
@@ -239,7 +239,7 @@ void initializePCB(pid_t pid) {
 }
 
 //Checks to see if another child can be launched. If so, it launches a new child.
-void launchChild(int maxSimulChildren, pid_t *ready) {
+void launchChild(int maxSimulChildren) {
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
 		pid_t newChild;
 		newChild = fork();
@@ -255,7 +255,7 @@ void launchChild(int maxSimulChildren, pid_t *ready) {
        		}
 		else {
 			initializePCB(newChild);
-			if(!addItemToQueue(ready, newChild)) {
+			if(!addItemToQueue(readyQueue, newChild)) {
 				perror("Failed to add child to ready queue\n");
 				exit(1);
 			}
@@ -327,7 +327,7 @@ int scheduleProcess(pid_t process, msgBuffer buf) {
 
 //Receives a message back from child that indicates how much time the child used and if it is blocked
 //Updates process table accordingly
-void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
+void receiveMessage(pid_t process, msgBuffer buf) {
 	msgBuffer rcvbuf;
 	if(msgrcv(msqid, &rcvbuf, sizeof(msgBuffer), getpid(), 0) == -1) {
 			perror("msgrcv from child failed\n");
@@ -338,7 +338,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 }
 
 //Updates the process control table
-void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
+void updateTable(pid_t process, msgBuffer rcvbuf) {
 	int entry = findTableIndex(process);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
@@ -385,7 +385,7 @@ void incrementClock(int timePassed) {
 }
 
 //checks to see if a blocked process should be changed to ready
-void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
+void checkBlockedQueue() {
 	int entry;
 	for(int count = 0; count < processTableSize; count++) {
 		if(blockedQueue[count] != -1) {
@@ -395,12 +395,12 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 				continue;
 			if(simulatedClock[0] >= processTable[entry].eventWaitSeconds && simulatedClock[1] > processTable[entry].eventWaitNano) {
 				processTable[entry].blocked = 0;
-				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
+				if(!removeItemFromQueue(blockedQueue, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
 					exit(1);
 				}
 
-				if(!addItemToQueue(ready, processTable[entry].pid)) {
+				if(!addItemToQueue(readyQueue, processTable[entry].pid)) {
 					perror("ready queue overflow\n");
 					exit(1);
 				}
@@ -409,7 +409,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	}
 }
 
-pid_t calculatePriorities(pid_t *ready) {
+pid_t calculatePriorities() {
 	pid_t priorityPid;
 	priorityPid = -1;
 	double highestPriority;
@@ -420,7 +420,7 @@ pid_t calculatePriorities(pid_t *ready) {
 	//for each entry in the ready queue, calculate the priority. if the current priority > highest, it = highest
 
 	for(int count = 0; count < processTableSize; count++) {
-		currentPid = ready[count];
+		currentPid = readyQueue[count];
 		if(currentPid == -1)
 			currentPriority = -1;
 		else {
