@@ -58,7 +58,7 @@ void outputTable(FILE *fptr);
 void incrementClock(int timePassed);
 void launchChild(int maxSimulChildren, pid_t *ready);
 int calculatePriorities(pid_t *ready);
-void scheduleProcess(pid_t process, msgBuffer buf);
+int scheduleProcess(pid_t process, msgBuffer buf);
 void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue);
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue);
 void checkBlockedQueue(pid_t *blocked, pid_t *ready);
@@ -168,11 +168,13 @@ int main(int argc, char** argv) {
 		pid_t priority;
 		priority = calculatePriorities(readyQueue);
 
-		//schedules the process with the highest priority
-		scheduleProcess(priority, buf);	
+		//schedules the process with the highest priority. If no processes are launched, returns 0
+		int msgSent;
+		msgSent = scheduleProcess(priority, buf);	
 
 		//Waits for a message back and updates appropriate structures
-		receiveMessage(priority, buf, blockedQueue);
+		if(msgSent) //prevents a blocked wait
+			receiveMessage(priority, buf, blockedQueue);
 
 		// Outputs the process table to a log file and the screen every half second,
 		checkTime(outputTimer, fptr);
@@ -304,16 +306,21 @@ int findTableIndex(pid_t pid) {
 }
 
 //"Schedules" a process by sending it a message to indicate that it should run
-//Returns 1 if a process was successful scheduled
-void scheduleProcess(pid_t process, msgBuffer buf) {
+//Returns 0 if no children are launched
+int scheduleProcess(pid_t process, msgBuffer buf) {
 	incrementClock(STANDARD_CLOCK_INCREMENT);
 	buf.mtype = process;
 	buf.intData = SCHEDULED_TIME;
+
+	if(process == -1)
+		return 0;
 
 	if(msgsnd(msqid, &buf, sizeof(msgBuffer) - sizeof(long), 0) == -1) {
 		perror("msgsnd to child failed\n");
 		exit(1);
 	}
+
+	return 1;
 }
 
 //Receives a message back from child that indicates how much time the child used and if it is blocked
@@ -328,7 +335,6 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 	updateTable(process, rcvbuf, blockedQueue);
 }
 
-//TODO: update waittime and blocked
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	int entry = findTableIndex(process);
