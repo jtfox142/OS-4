@@ -367,16 +367,10 @@ void incrementClock(int timePassed) {
 }
 
 //checks to see if a blocked process should be changed to ready
-//TODO UPDATE: I never remove from the ready queue, only from the blocked queue. Fix that, everything else works
-
-//What needs to happen in this section: 
-//If a process exists in the blocked queue, check to see if it can leave.
-//If so, remove from blocked queue and add to ready queue.
-
 //What is currently happening in this section:
 /*
 Check to see if there is anything in the blocked queue.
-If so, check to see if that item's PCB is occupied (but then nothing happens either way). 
+TODO If so, check to see if that item's PCB is occupied (but then nothing happens either way). 
 	I guess could use for error checking? If it never ran ie not occupied, then set that blocked queue entry back to -1 or w/e
 If that item is ready, remove from blocked and add to ready.
 */
@@ -477,7 +471,7 @@ void outputTable(FILE *file) {
 	printf("Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n");
 	int i;
 	for(i = 0; i < processTableSize; i++) {
-		printf("%d\t%d\t%d\t%d\t%d\t%d\t\t  %d\t\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
+		printf("%d\t%d\t%d\t%d\t%d\t%d\t\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
 		fprintf(file, "Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n\n%d\t%d\t%d\t%d\t%d%d\t%d\t%d\t%d\t%d\t\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
 	}
 }

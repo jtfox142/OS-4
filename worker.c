@@ -30,7 +30,6 @@ int decideAction() {
 
 int decideTimeUsed(msgbuffer buf) {
 	int timeUsed = RNG(buf.intData, 1);
-	printf("timeUsed in worker: %d\n", timeUsed);
 	return timeUsed;
 }
 
