@@ -439,7 +439,7 @@ double priorityArithmetic(int currentEntry) {
 	double serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
 	double timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
 	//If a process has had no time in the system, it should have top priority
-	if(serviceTime == 0)
+	if(serviceTime <= 10500)
 		return 1;
 	return (serviceTime / timeInSystem); 
 }
