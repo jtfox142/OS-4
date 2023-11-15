@@ -390,8 +390,10 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			if(!processTable[entry].occupied)
 				continue;
 			if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
+				processTable[entry].blocked == 0;
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
+					terminateProgram(6);
 				}
 
 				if(!addItemToQueue(ready, processTable[entry].pid)) {
@@ -405,7 +407,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 
 pid_t calculatePriorities(pid_t *ready) {
 	pid_t priorityPid;
-	priorityPid = readyQueue[0];
+	priorityPid = -1;
 	double highestPriority;
 	highestPriority = 0;
 	pid_t currentPid;
