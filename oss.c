@@ -393,6 +393,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 			if(!processTable[entry].occupied)
 				continue;
 			if(processTable[entry].eventWaitSeconds >= simulatedClock[0] && processTable[entry].eventWaitNano > simulatedClock[1]) {
+				printf("Removing PID %d from blocked queue.\n", processTable[entry].occupied);
 				processTable[entry].blocked == 0;
 				if(!removeItemFromQueue(blocked, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
@@ -411,7 +412,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 //TODO not calculating priorities right
 pid_t calculatePriorities(pid_t *ready) {
 	pid_t priorityPid;
-	priorityPid = ready[0];
+	priorityPid = -1;
 	double highestPriority;
 	highestPriority = 0;
 	pid_t currentPid;
@@ -425,7 +426,7 @@ pid_t calculatePriorities(pid_t *ready) {
 			currentPriority = -1;
 		else
 			currentPriority = priorityArithmetic(findTableIndex(currentPid));
-		if(currentPriority >= highestPriority) {
+		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
 		}
@@ -437,6 +438,9 @@ pid_t calculatePriorities(pid_t *ready) {
 double priorityArithmetic(int currentEntry) {
 	double serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
 	double timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
+	//If a process has had no time in the system, it should have top priority
+	if(serviceTime == 0)
+		return 1;
 	return (serviceTime / timeInSystem); 
 }
 
