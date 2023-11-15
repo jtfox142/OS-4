@@ -428,7 +428,7 @@ pid_t calculatePriorities(pid_t *ready) {
 			currentPriority = -1;
 		else
 			currentPriority = priorityArithmetic(findTableIndex(currentPid));
-		printf("currentPriority: %d\n", currentPriority);
+		printf("currentPriority: %f\n", currentPriority);
 		if(currentPriority > highestPriority) {
 			highestPriority = currentPriority;
 			priorityPid = currentPid;
@@ -440,7 +440,7 @@ pid_t calculatePriorities(pid_t *ready) {
 
 double priorityArithmetic(int currentEntry) {
 	double serviceTime = processTable[currentEntry].serviceTimeSeconds + (processTable[currentEntry].serviceTimeNano / ONE_SECOND);
-	printf("serviceTime: %d\n", serviceTime);
+	printf("serviceTime: %f\n", serviceTime);
 	double timeInSystem = processTable[currentEntry].startTimeSeconds + (processTable[currentEntry].startTimeNano / ONE_SECOND);
 	//If a process has had no time in the system, it should have top priority
 	if(serviceTime <= 10500)
