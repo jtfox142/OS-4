@@ -11,9 +11,9 @@
 
 #define PERMS 0644
 #define MAX_CHILDREN 20
-#define SCHEDULED_TIME 105000
+#define SCHEDULED_TIME 10500
 #define ONE_SECOND 1000000000
-#define STANDARD_CLOCK_INCREMENT 105000
+#define STANDARD_CLOCK_INCREMENT 5500
 
 typedef struct msgBuffer {
 	long mtype;
@@ -328,6 +328,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 	updateTable(process, rcvbuf, blockedQueue);
 }
 
+//TODO: update waittime and blocked
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	int entry = findTableIndex(process);
