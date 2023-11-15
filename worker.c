@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 		int action = decideAction();
 		if(action == 2) {
 			buf.intData = decideTimeUsed(buf);
-			printf("From worker: TO THE BLOCKED QUEUE YOU GO\N");
+			printf("From worker: TO THE BLOCKED QUEUE YOU GO\n");
 		}
 		else if(action == 3) {
 			buf.intData = -decideTimeUsed(buf);
