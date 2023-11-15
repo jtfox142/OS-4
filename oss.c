@@ -330,7 +330,6 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 	int entry = findTableIndex(process);
-	//printf("rcvbuf: %d\n", rcvbuf.intData);
 	if(rcvbuf.intData < 0) {
 		processTable[entry].occupied = 0;
 	}
@@ -340,6 +339,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
 	}
+	printf("rcvbuf: %d\n", rcvbuf.intData);
 	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
 		processTable[entry].serviceTimeSeconds = processTable[entry].serviceTimeSeconds + 1;
