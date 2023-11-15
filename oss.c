@@ -324,6 +324,7 @@ void receiveMessage(pid_t process, msgBuffer buf, pid_t *blockedQueue) {
 			perror("msgrcv from child failed\n");
 			exit(1);
 	}
+	incrementClock(abs(rcvbuf.intData));
 	updateTable(process, rcvbuf, blockedQueue);
 }
 
