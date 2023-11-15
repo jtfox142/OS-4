@@ -405,6 +405,7 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	}
 }
 
+//TODO not calculating priorities right
 pid_t calculatePriorities(pid_t *ready) {
 	pid_t priorityPid;
 	priorityPid = -1;
@@ -413,10 +414,10 @@ pid_t calculatePriorities(pid_t *ready) {
 	pid_t currentPid;
 	double currentPriority;
 
-	//for each entry in the readyqueue, calculate the priority. if the current priority > highest, it = highest
+	//for each entry in the ready queue, calculate the priority. if the current priority > highest, it = highest
 
 	for(int count = 0; count < processTableSize; count++) {
-		currentPid = readyQueue[count];
+		currentPid = ready[count];
 		if(currentPid = -1)
 			currentPriority = -1;
 		else
