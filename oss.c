@@ -168,7 +168,6 @@ int main(int argc, char** argv) {
 		pid_t priority;
 		priority = calculatePriorities(readyQueue);
 
-		printf("priority: %d\n", priority);
 		//schedules the process with the highest priority. If no processes are launched, returns 0
 		int msgSent;
 		msgSent = scheduleProcess(priority, buf);	
@@ -420,7 +419,6 @@ pid_t calculatePriorities(pid_t *ready) {
 
 	for(int count = 0; count < processTableSize; count++) {
 		currentPid = ready[count];
-		printf("currentPid in calculatingPriorities: %d\n", currentPid);
 		if(currentPid = -1)
 			currentPriority = -1;
 		else
