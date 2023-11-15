@@ -15,6 +15,7 @@ typedef struct msgbuffer {
 } msgbuffer;
 
 int RNG(int max, int min) {
+	srand(time(NULL) * getpid());
 	return ((rand() % (max - min + 1) + 1));
 }
 
@@ -39,9 +40,6 @@ int main(int argc, char** argv) {
 	buf.intData = 0;
 	int msqid = 0;
 	key_t key;
-
-	//seed the random number generator
-	srand(getpid());
 
 	// get a key for our message queue
 	if ((key = ftok("msgq.txt", 1)) == -1) {
