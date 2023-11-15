@@ -168,6 +168,7 @@ int main(int argc, char** argv) {
 		pid_t priority;
 		priority = calculatePriorities(readyQueue);
 
+		printf("priority: %d\n", priority);
 		//schedules the process with the highest priority. If no processes are launched, returns 0
 		int msgSent;
 		msgSent = scheduleProcess(priority, buf);	
@@ -309,11 +310,12 @@ int findTableIndex(pid_t pid) {
 //Returns 0 if no children are launched
 int scheduleProcess(pid_t process, msgBuffer buf) {
 	incrementClock(STANDARD_CLOCK_INCREMENT);
-	buf.mtype = process;
-	buf.intData = SCHEDULED_TIME;
 
 	if(process == -1)
 		return 0;
+
+	buf.mtype = process;
+	buf.intData = SCHEDULED_TIME;
 
 	if(msgsnd(msqid, &buf, sizeof(msgBuffer) - sizeof(long), 0) == -1) {
 		perror("msgsnd to child failed\n");
