@@ -344,7 +344,15 @@ void updateTable(pid_t process, msgBuffer rcvbuf, pid_t *blockedQueue) {
 		processTable[entry].occupied = 0;
 	}
 	else if(rcvbuf.intData < SCHEDULED_TIME) {
-		printf("HELP IM BLOCKED\n");
+		/*TODO
+
+		Process does what it is supposed to.
+
+		Service time gets suspended when blocked.
+		Waits until it is unblocked and then.. immediately reblocks itself.
+
+		*/
+		printf("HELP IM BLOCKED\n"); 
 		processTable[entry].blocked = 1;
 		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
@@ -377,19 +385,12 @@ void incrementClock(int timePassed) {
 }
 
 //checks to see if a blocked process should be changed to ready
-//What is currently happening in this section:
-/*
-Check to see if there is anything in the blocked queue.
-TODO If so, check to see if that item's PCB is occupied (but then nothing happens either way). 
-	I guess could use for error checking? If it never ran ie not occupied, then set that blocked queue entry back to -1 or w/e
-If that item is ready, remove from blocked and add to ready.
-*/
 void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	int entry;
 	for(int count = 0; count < processTableSize; count++) {
 		if(blockedQueue[count] != -1) {
 			entry = findTableIndex(blockedQueue[count]);
-			//TODO: do i need this? did i mean to add an else?
+			//If the PCB is unoccupied, continue to the next item in the processTable
 			if(!processTable[entry].occupied)
 				continue;
 			if(simulatedClock[0] >= processTable[entry].eventWaitSeconds && simulatedClock[1] > processTable[entry].eventWaitNano) {
@@ -408,7 +409,6 @@ void checkBlockedQueue(pid_t *blocked, pid_t *ready) {
 	}
 }
 
-//TODO not calculating priorities right
 pid_t calculatePriorities(pid_t *ready) {
 	pid_t priorityPid;
 	priorityPid = -1;
