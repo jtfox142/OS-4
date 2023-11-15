@@ -420,6 +420,7 @@ pid_t calculatePriorities(pid_t *ready) {
 
 	for(int count = 0; count < processTableSize; count++) {
 		currentPid = ready[count];
+		printf("currentPid in calculatingPriorities: %d\n", currentPid);
 		if(currentPid = -1)
 			currentPriority = -1;
 		else
