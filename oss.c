@@ -358,6 +358,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf) {
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
 		printf("i did all the things\n");
+		//TODO: I never reset waittime to 0 in pcb. also, i am getting a value for eventWaitNano that is > ONE_SECOND
 	}
 	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
@@ -374,7 +375,7 @@ void calculateEventTime(pid_t process, int entry) {
 
 	srand(process);
 	processTable[entry].eventWaitSeconds = simulatedClock[0] + ((rand() % SEC_MAX) + 1);
-	processTable[entry].eventWaitNano = simulatedClock[1] + ((rand() % NANO_MAX) + 1);
+	processTable[entry].eventWaitNano = ((rand() % NANO_MAX) + 1);
 }
 
 void incrementClock(int timePassed) {

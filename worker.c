@@ -15,7 +15,13 @@ typedef struct msgbuffer {
 } msgbuffer;
 
 int RNG(int max, int min) {
-	srand(time(NULL) * getpid());
+	unsigned int randval;
+	FILE *f;
+   	f = fopen("/dev/random", "r");
+	fread(&randval, sizeof(randval), 1, f);
+	fclose(f);
+
+	srand(randval);
 	return ((rand() % (max - min + 1) + 1));
 }
 
