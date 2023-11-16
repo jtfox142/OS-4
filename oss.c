@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 			receiveMessage(priority, buf);
 
 		// Outputs the process table to a log file and the screen every half second,
-		//checkTime(outputTimer, fptr);
+		checkTime(outputTimer, fptr);
 	}
 
 	pid_t wpid;
