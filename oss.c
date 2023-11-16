@@ -357,6 +357,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf) {
 		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
+		printf("i did all the things\n");
 	}
 	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
@@ -475,6 +476,7 @@ void sighandler(int signum) {
 
 //updates the PCB of a process that has ended
 void processEnded(int pidNumber) {
+	removeItemFromQueue(readyQueue, pidNumber);
 	int i;
 	for(i = 0; i < processTableSize; i++) {
 		if(processTable[i].pid == pidNumber) {
