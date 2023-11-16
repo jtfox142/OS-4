@@ -13,7 +13,7 @@
 #define MAX_CHILDREN 20
 #define SCHEDULED_TIME 50000
 #define ONE_SECOND 1000000000
-#define STANDARD_CLOCK_INCREMENT 5000
+#define STANDARD_CLOCK_INCREMENT 500
 
 typedef struct msgBuffer {
 	long mtype;
