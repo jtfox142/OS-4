@@ -45,6 +45,8 @@ int simulatedClock[2];
 int msqid;
 //Needed for killing all child processes
 int processTableSize;
+//Needed for launching purposes
+int runningChildren;
 
 // FUNCTION PROTOTYPES
 //Help function
@@ -94,6 +96,8 @@ int main(int argc, char** argv) {
 
 	readyQueue = (pid_t*)malloc(processTableSize * sizeof(int));
 	blockedQueue = (pid_t*)malloc(processTableSize * sizeof(int));
+
+	runningChildren = 0;
 	
 
 	//message queue setup
@@ -183,7 +187,7 @@ int main(int argc, char** argv) {
 			receiveMessage(priority, buf);
 
 		// Outputs the process table to a log file and the screen every half second,
-		checkTime(outputTimer, fptr);
+		//checkTime(outputTimer, fptr);
 	}
 
 	pid_t wpid;
@@ -251,7 +255,7 @@ void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) 
 		return;
 
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
-		printf("\n\nATTEMPTING TO LAUNCH CHILD\n\n");
+		printf("\n\nATTEMPTING TO LAUNCH CHILD\n");
 		pid_t newChild;
 		newChild = fork();
 		if(newChild < 0) {
@@ -272,22 +276,15 @@ void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) 
 			}
 			*lastLaunchTime = simulatedClock[1];
 			printf("\nFROM PARENT: worker did launch\n");
+			runningChildren++;
 		}
 	}
 }
 
-//Returns 1 if the maximum number of running children has not been reached, returns 0 otherwise
+//Returns true if the number of currently running children is less than the max
 int checkChildren(int maxSimulChildren) {
-	int runningChildren;
-	runningChildren = 0;
-	for(int count = 0; count < processTableSize; count++) {
-		if(processTable[count].occupied)
-			runningChildren++;
-	}
-
 	if(runningChildren < maxSimulChildren)
 		return 1;
-
 	return 0;
 }
 
@@ -353,15 +350,17 @@ void receiveMessage(pid_t process, msgBuffer buf) {
 //Updates the process control table
 void updateTable(pid_t process, msgBuffer rcvbuf) {
 	int entry = findTableIndex(process);
-	if(rcvbuf.intData < 0) {
+	if(rcvbuf.intData < 0) { //Process terminated
 		processTable[entry].occupied = 0;
+		runningChildren--;
 	}
-	else if(rcvbuf.intData < SCHEDULED_TIME) {
+	else if(rcvbuf.intData < SCHEDULED_TIME) { //Process is blocked
 		processTable[entry].blocked = 1;
 		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
 	}
+	//Update service time
 	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
 		processTable[entry].serviceTimeSeconds = processTable[entry].serviceTimeSeconds + 1;
