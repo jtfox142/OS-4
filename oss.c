@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 			receiveMessage(priority, buf);
 
 		// Outputs the process table to a log file and the screen every half second,
-		//checkTime(outputTimer, fptr);
+		checkTime(outputTimer, fptr);
 	}
 
 	pid_t wpid;
@@ -353,7 +353,7 @@ void updateTable(pid_t process, msgBuffer rcvbuf) {
 	if(rcvbuf.intData < 0) { //Process terminated
 		processTable[entry].occupied = 0;
 		removeItemFromQueue(readyQueue, process);
-		removeItemFromQueue(blockedQueue, process);
+		//removeItemFromQueue(blockedQueue, process);
 		processTable[entry].blocked = 0;
 		runningChildren--;
 	}
