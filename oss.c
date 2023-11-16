@@ -251,6 +251,7 @@ void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) 
 		return;
 
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
+		printf("\n\nATTEMPTING TO LAUNCH CHILD\n\n");
 		pid_t newChild;
 		newChild = fork();
 		if(newChild < 0) {
