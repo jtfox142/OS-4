@@ -56,7 +56,7 @@ void processEnded(int pidNumber);
 void outputTable(FILE *fptr);
 //OSS functions
 void incrementClock(int timePassed);
-void launchChild(int maxSimulChildren);
+void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime);
 int calculatePriorities();
 int scheduleProcess(pid_t process, msgBuffer buf);
 void receiveMessage(pid_t process, msgBuffer buf);
@@ -151,15 +151,21 @@ int main(int argc, char** argv) {
 	//sets all pids in the process table to 0
 	initializeProcessTable();
 
-	int outputTimerStart;
-	int *outputTimer = &outputTimerStart;
+	int outputTimerAddress;
+	int *outputTimer = &outputTimerAddress;
 	*outputTimer = 0;
+
+	//Keeps track of the last time a child was launched.
+	//For comparison with timelimit
+	int *lastLaunchTime = malloc(sizeof(int));
+	*lastLaunchTime = 0;
 
 	//stillChildrenToLaunch checks if we have initialized the final PCB yet. 
 	//childrenInSystem checks if any PCBs remain occupied
 	while(stillChildrenToLaunch() || childrenInSystem()) {
-		//calls another function to check if runningChildren < simul, and if so, launches a new child.
-		launchChild(simul);
+		//calls another function to check if runningChildren < simul and if timeLimit has been passed
+		//if so, it launches a new child.
+		launchChild(simul, timelimit, lastLaunchTime);
 
 		//checks to see if a blocked process should be changed to ready
 		checkBlockedQueue();
@@ -197,7 +203,7 @@ void checkTime(int *outputTimer, FILE *fptr) {
 		}
 }
 
-//TODO: Update help message and README.md
+//TODO: Update README.md
 void help() {
     printf("This program is designed to simulate a process scheduler.\n");
 	printf("The main program (is supposed to) launch child workers periodically and launch them based upon priority.\n");
@@ -206,7 +212,7 @@ void help() {
     printf("The executable takes four flags: [-n proc], [-s simul], [-t timelimit], and [-f logfile].\n");
     printf("The value of proc determines the total number of child processes to be produced.\n");
 	printf("The value of simul determines the number of children that can run simultaneously.\n");
-	printf("The value of timelimit (is supposed to) determine how often new children are launched.\n");
+	printf("The value of timelimit determines how often new children may be launched, in nanoseconds.\n");
 	printf("The file name provided will be used as a logfile to which this program outputs.\n");
 	printf("\nMADE BY JACOB (JT) FOX\nOctober 31st, 2023\n");
 	exit(1);
@@ -239,7 +245,11 @@ void initializePCB(pid_t pid) {
 }
 
 //Checks to see if another child can be launched. If so, it launches a new child.
-void launchChild(int maxSimulChildren) {
+void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) {
+	//If the user defined time interval has not been reached, return.
+	if((simulatedClock[1] - *lastLaunchTime) < launchInterval)
+		return;
+
 	if(checkChildren(maxSimulChildren) && stillChildrenToLaunch()) {
 		pid_t newChild;
 		newChild = fork();
@@ -259,6 +269,7 @@ void launchChild(int maxSimulChildren) {
 				perror("Failed to add child to ready queue\n");
 				exit(1);
 			}
+			*lastLaunchTime = simulatedClock[1];
 		}
 	}
 }
