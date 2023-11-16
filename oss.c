@@ -85,7 +85,14 @@ void calculateEventTime(pid_t process, int entry);
 double priorityArithmetic(int currentEntry);
 void checkTime(int *outputTimer);
 
+/*
 
+TODO
+* Change all 'exit' calls to 'terminateProgram(6)
+* Update readme
+* Only output 10k lines to logfile
+
+*/
 int main(int argc, char** argv) {
 	//signals to terminate program properly if user hits ctrl+c or 60 seconds pass
 	alarm(60);
@@ -208,7 +215,6 @@ void checkTime(int *outputTimer) {
 		}
 }
 
-//TODO: Update README.md
 void help() {
     printf("This program is designed to simulate a process scheduler.\n");
 	printf("The main program (is supposed to) launch child workers periodically and launch them based upon priority.\n");
