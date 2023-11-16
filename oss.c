@@ -11,9 +11,9 @@
 
 #define PERMS 0644
 #define MAX_CHILDREN 20
-#define SCHEDULED_TIME 50000000
+#define SCHEDULED_TIME 500000
 #define ONE_SECOND 1000000000
-#define STANDARD_CLOCK_INCREMENT 2500
+#define STANDARD_CLOCK_INCREMENT 5000
 
 typedef struct msgBuffer {
 	long mtype;
@@ -344,21 +344,10 @@ void updateTable(pid_t process, msgBuffer rcvbuf) {
 		processTable[entry].occupied = 0;
 	}
 	else if(rcvbuf.intData < SCHEDULED_TIME) {
-		/*TODO
-
-		Process does what it is supposed to.
-
-		Service time gets suspended when blocked.
-		Waits until it is unblocked and then.. immediately reblocks itself.
-
-		*/
-		printf("HELP IM BLOCKED\n"); 
 		processTable[entry].blocked = 1;
 		removeItemFromQueue(readyQueue, processTable[entry].pid);
 		addItemToQueue(blockedQueue, processTable[entry].pid);
 		calculateEventTime(process, entry);
-		printf("i did all the things\n");
-		//TODO: I never reset waittime to 0 in pcb. also, i am getting a value for eventWaitNano that is > ONE_SECOND
 	}
 	processTable[entry].serviceTimeNano = processTable[entry].serviceTimeNano + abs(rcvbuf.intData);
 	if(processTable[entry].serviceTimeNano > ONE_SECOND) {
@@ -397,6 +386,8 @@ void checkBlockedQueue() {
 				continue;
 			if(simulatedClock[0] >= processTable[entry].eventWaitSeconds && simulatedClock[1] > processTable[entry].eventWaitNano) {
 				processTable[entry].blocked = 0;
+				processTable[entry].eventWaitNano = 0;
+				processTable[entry].eventWaitSeconds = 0;
 				if(!removeItemFromQueue(blockedQueue, processTable[entry].pid)) {
 					perror("Item not found in blocked queue");
 					exit(1);

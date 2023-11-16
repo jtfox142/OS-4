@@ -27,7 +27,6 @@ int RNG(int max, int min) {
 
 int decideAction() {
 	int choice = RNG(100, 0);
-	printf("FROM WORKER: choice: %d\n", choice);
 	if(choice < 95)
 		return 1;
 	if(choice <= 98)
@@ -77,7 +76,6 @@ int main(int argc, char** argv) {
 		int action = decideAction();
 		if(action == 2) {
 			buf.intData = decideTimeUsed(buf);
-			printf("From worker: TO THE BLOCKED QUEUE YOU GO\n");
 		}
 		else if(action == 3) {
 			buf.intData = -decideTimeUsed(buf);
