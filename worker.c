@@ -17,7 +17,7 @@ typedef struct msgbuffer {
 int RNG(int max, int min) {
 	unsigned int randval;
 	FILE *f;
-   	f = fopen("/dev/random", "r");
+   	f = fopen("/dev/urandom", "r");
 	fread(&randval, sizeof(randval), 1, f);
 	fclose(f);
 
