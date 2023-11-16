@@ -11,9 +11,9 @@
 
 #define PERMS 0644
 #define MAX_CHILDREN 20
-#define SCHEDULED_TIME 10500
+#define SCHEDULED_TIME 105000
 #define ONE_SECOND 1000000000
-#define STANDARD_CLOCK_INCREMENT 5500
+#define STANDARD_CLOCK_INCREMENT 2500
 
 typedef struct msgBuffer {
 	long mtype;
