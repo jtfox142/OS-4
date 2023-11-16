@@ -271,6 +271,7 @@ void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) 
 				exit(1);
 			}
 			*lastLaunchTime = simulatedClock[1];
+			printf("\nFROM PARENT: worker did launch\n");
 		}
 	}
 }

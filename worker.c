@@ -41,6 +41,8 @@ int decideTimeUsed(msgbuffer buf) {
 
 int main(int argc, char** argv) {
 
+	printf("\nFROM WORKER: I AM ALIVE\n");
+
 	msgbuffer buf;
 	buf.mtype = 1;
 	buf.intData = 0;
