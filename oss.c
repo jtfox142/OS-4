@@ -47,6 +47,8 @@ int msqid;
 int processTableSize;
 //Needed for launching purposes
 int runningChildren;
+//Output file
+FILE *fptr;
 
 // FUNCTION PROTOTYPES
 //Help function
@@ -55,7 +57,7 @@ void help();
 void initializeProcessTable();
 void initializePCB(pid_t pid);
 void processEnded(int pidNumber);
-void outputTable(FILE *fptr);
+void outputTable();
 //OSS functions
 void incrementClock(int timePassed);
 void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime);
@@ -68,8 +70,8 @@ void checkBlockedQueue();
 void terminateProgram(int signum);
 void sighandler(int signum);
 //Log file functions
-void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file);
-void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf);
+void sendingOutput(int chldNum, int chldPid, int systemClock[2]);
+void receivingOutput(int chldNum, int chldPid, int systemClock[2], msgBuffer rcvbuf);
 //Queue functions
 int addItemToQueue(pid_t *queue, pid_t itemToAdd);
 int removeItemFromQueue(pid_t *queue, pid_t itemToRemove);
@@ -81,7 +83,7 @@ int childrenInSystem();
 int findTableIndex(pid_t pid);
 void calculateEventTime(pid_t process, int entry);
 double priorityArithmetic(int currentEntry);
-void checkTime(int *outputTimer, FILE *fptr);
+void checkTime(int *outputTimer);
 
 
 int main(int argc, char** argv) {
@@ -121,7 +123,6 @@ int main(int argc, char** argv) {
 	int proc;
 	int simul;
 	int timelimit;
-	FILE *fptr;
 
 	while ((option = getopt(argc, argv, "hn:s:t:f:")) != -1) {
   		switch(option) {
@@ -187,7 +188,7 @@ int main(int argc, char** argv) {
 			receiveMessage(priority, buf);
 
 		// Outputs the process table to a log file and the screen every half second,
-		checkTime(outputTimer, fptr);
+		checkTime(outputTimer);
 	}
 
 	pid_t wpid;
@@ -199,8 +200,8 @@ int main(int argc, char** argv) {
 
 // FUNCTION DEFINITIONS
 
-void checkTime(int *outputTimer, FILE *fptr) {
-	if(abs(simulatedClock[1] - *outputTimer) >= 50000000){
+void checkTime(int *outputTimer) {
+	if(abs(simulatedClock[1] - *outputTimer) >= 500000000){
 			*outputTimer = simulatedClock[1];
 			printf("\nOSS PID:%d SysClockS:%d SysClockNano:%d\n", getpid(), simulatedClock[0], simulatedClock[1]); 
 			outputTable(fptr);
@@ -275,7 +276,8 @@ void launchChild(int maxSimulChildren, int launchInterval, int *lastLaunchTime) 
 				exit(1);
 			}
 			*lastLaunchTime = simulatedClock[1];
-			printf("\nFROM PARENT: worker did launch\n");
+			printf("Launching Child.\n");
+			outputTable();
 			runningChildren++;
 		}
 	}
@@ -356,6 +358,8 @@ void updateTable(pid_t process, msgBuffer rcvbuf) {
 		//removeItemFromQueue(blockedQueue, process);
 		processTable[entry].blocked = 0;
 		runningChildren--;
+		printf("Process Terminating.\n");
+		outputTable();
 	}
 	else if(rcvbuf.intData < SCHEDULED_TIME) { //Process is blocked
 		processTable[entry].blocked = 1;
@@ -452,7 +456,6 @@ double priorityArithmetic(int currentEntry) {
 	return (serviceTime / timeInSystem); 
 }
 
-//TODO: close the file
 void terminateProgram(int signum) {
 	//Kills any remaining active child processes
 	int count;
@@ -470,6 +473,9 @@ void terminateProgram(int signum) {
 		perror("msgctl to get rid of queue in parent failed");
 		exit(1);
 	}
+
+	//close the log file
+	fclose(fptr);
 
 	printf("Program is terminating. Goodbye!\n");
 	exit(1);
@@ -493,28 +499,28 @@ void processEnded(int pidNumber) {
 	}
 }
 
-void outputTable(FILE *file) {
+void outputTable() {
 	printf("%s\n%-15s %-15s %15s %15s %15s %15s %15s %15s %15s %15s\n", "Process Table:", "Entry", "Occupied", "PID", "StartS", "StartN", "ServiceS", "ServiceN", "WaitS", "WaitN", "Blocked");
 	//printf("Process Table:\nEntry Occupied   PID\tStartS StartN\tServiceS\tServiceN\tWaitS\tWaitN\tBlocked\n");
 	int i;
 	for(i = 0; i < processTableSize; i++) {
 		printf("%-15d %-15d %15d %15d %15d %15d %15d %15d %15d %15d\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
-		fprintf(file, "%s\n%-15s %-15s %15s %15s %15s %15s %15s %15s %15s %15s\n", "Process Table:", "Entry", "Occupied", "PID", "StartS", "StartN", "ServiceS", "ServiceN", "WaitS", "WaitN", "Blocked");
-		fprintf(file, "%-15d %-15d %15d %15d %15d %15d %15d %15d %15d %15d\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
+		fprintf(fptr, "%s\n%-15s %-15s %15s %15s %15s %15s %15s %15s %15s %15s\n", "Process Table:", "Entry", "Occupied", "PID", "StartS", "StartN", "ServiceS", "ServiceN", "WaitS", "WaitN", "Blocked");
+		fprintf(fptr, "%-15d %-15d %15d %15d %15d %15d %15d %15d %15d %15d\n\n", i, processTable[i].occupied, processTable[i].pid, processTable[i].startTimeSeconds, processTable[i].startTimeNano, processTable[i].serviceTimeSeconds, processTable[i].serviceTimeNano, processTable[i].eventWaitSeconds, processTable[i].eventWaitNano, processTable[i].blocked);
 	}
 }
 
-void sendingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file) {
-	fprintf(file, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
+void sendingOutput(int chldNum, int chldPid, int systemClock[2]) {
+	fprintf(fptr, "OSS:\t Sending message to worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
 }
 
-void receivingOutput(int chldNum, int chldPid, int systemClock[2], FILE *file, msgBuffer rcvbuf) {
+void receivingOutput(int chldNum, int chldPid, int systemClock[2], msgBuffer rcvbuf) {
 	if(rcvbuf.intData != 0) {
-		fprintf(file, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
+		fprintf(fptr, "OSS:\t Receiving message from worker %d PID %d at time %d:%d\n", chldNum, chldPid, systemClock[0], systemClock[1]);
 	}
 	else {
 		printf("OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
-		fprintf(file, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
+		fprintf(fptr, "OSS:\t Worker %d PID %d is planning to terminate.\n", chldNum, chldPid);	
 	}
 }
 
