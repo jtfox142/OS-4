@@ -27,6 +27,7 @@ int RNG(int max, int min) {
 
 int decideAction() {
 	int choice = RNG(100, 0);
+	printf("FROM WORKER: choice: %d\n", choice);
 	if(choice < 95)
 		return 1;
 	if(choice <= 98)
